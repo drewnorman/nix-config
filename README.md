@@ -6,18 +6,21 @@ my systems. Requires [Nix Flakes](https://nixos.wiki/wiki/Flakes).
 
 ## Hosts
 
-- `nix`: Proxmox VM intended for the homelab host `lab-nix`.
+- `nix`: Proxmox LXC intended for the homelab host `lab-nix`.
   - Hostname: `lab-nix`
   - LAN name: `nix.lab.adre.me`
-  - Static IP: `172.16.0.240/24`
-  - Gateway: `172.16.0.1`
+  - Static IP: `192.168.1.240/24`
+  - Gateway: `192.168.1.1`
   - SSH target: `ssh drew@nix.lab.adre.me`
 
-Build or switch the Proxmox Nix host with:
+Build the Proxmox LXC template with:
 
 ```sh
-sudo nixos-rebuild switch --flake .#nix
+nix build .#lab-nix-lxc-template
 ```
 
-This host is SSH-only for now. It does not declare any HTTP service for the
-homelab reverse proxy.
+Upload the resulting tarball to Proxmox as `local:vztmpl/nixos-lxc-lab-nix.tar.xz`,
+then let the homelab OpenTofu configuration create and start the container.
+
+This host is SSH-only. It does not declare any HTTP service for the homelab
+reverse proxy.

@@ -10,7 +10,7 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }:
+  outputs = inputs@{ self, nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
       nixHostModules = [
@@ -26,18 +26,15 @@
     in
     {
       nixosConfigurations = {
-        nix = nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = { inherit inputs; };
-          modules = nixHostModules;
-        };
-
         lab-nix = nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { inherit inputs; };
           modules = nixHostModules;
         };
       };
+
+      packages.${system}.lab-nix-lxc-template =
+        self.nixosConfigurations.lab-nix.config.system.build.tarball;
 
       devShells.${system}.default = import ./shell.nix {
         pkgs = import nixpkgs {

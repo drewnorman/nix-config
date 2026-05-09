@@ -2,52 +2,20 @@
 
 {
   imports = [
-    "${modulesPath}/profiles/qemu-guest.nix"
+    "${modulesPath}/virtualisation/proxmox-lxc.nix"
   ];
 
   networking.hostName = "lab-nix";
   networking.domain = "lab.adre.me";
-  networking.useDHCP = false;
-  networking.useNetworkd = true;
   networking.nameservers = [
-    "172.16.0.210"
+    "192.168.1.210"
     "1.1.1.1"
   ];
-  systemd.network.enable = true;
-  systemd.network.networks."10-lan" = {
-    matchConfig.Name = "en*";
-    networkConfig = {
-      DHCP = "no";
-      IPv6AcceptRA = false;
-    };
-    address = [ "172.16.0.240/24" ];
-    gateway = [ "172.16.0.1" ];
-    dns = [
-      "172.16.0.210"
-      "1.1.1.1"
-    ];
-    domains = [ "lab.adre.me" ];
-  };
 
   time.timeZone = "America/Denver";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelParams = [ "console=ttyS0" ];
-
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
-    fsType = "ext4";
-  };
-
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-label/boot";
-    fsType = "vfat";
-  };
-
-  services.qemuGuest.enable = true;
   services.openssh = {
     enable = true;
     settings = {
