@@ -7,6 +7,7 @@
 
   networking.hostName = "lab-nix";
   networking.domain = "lab.adre.me";
+  networking.fqdn = "lab-nix.lab.adre.me";
   networking.nameservers = [
     "192.168.1.210"
     "1.1.1.1"
