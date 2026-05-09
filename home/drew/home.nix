@@ -19,9 +19,9 @@
 
   programs.git = {
     enable = true;
-    userName = "Drew Norman";
-    userEmail = "drewnorman739@gmail.com";
-    extraConfig = {
+    settings = {
+      user.name = "Drew Norman";
+      user.email = "drewnorman739@gmail.com";
       init.defaultBranch = "master";
     };
   };
