@@ -33,8 +33,22 @@ ssh drew@nix.lab.adre.me
 
 ### Rebuilding
 
-Once the container is running, rebuild in place from this repo:
+**Remotely** from this repo on any machine:
 
 ```sh
 nixos-rebuild switch --flake .#lab-nix --target-host drew@nix.lab.adre.me --use-remote-sudo
+```
+
+**Locally** from the host itself — clone the repo once, then pull and rebuild:
+
+```sh
+git clone git@github.com:drewnorman/nix-config.git ~/.nix-config
+cd ~/.nix-config
+sudo nixos-rebuild switch --flake .#lab-nix
+```
+
+For subsequent updates:
+
+```sh
+cd ~/.nix-config && git pull && sudo nixos-rebuild switch --flake .#lab-nix
 ```
