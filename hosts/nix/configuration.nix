@@ -65,6 +65,7 @@
     neovim
     ripgrep
     tmux
+    unzip
     wget
   ];
 
