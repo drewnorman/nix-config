@@ -23,6 +23,7 @@ return {
         opts = {
             ensure_installed = {
                 "cssls",
+                "emmet-language-server",
                 "html",
                 "intelephense",
                 "jdtls",
