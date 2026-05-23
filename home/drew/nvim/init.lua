@@ -8,5 +8,4 @@ require('config.commands')
 require('config.keymaps')
 require('plugins')
 
--- Load plugin-backed behavior after lazy.nvim is initialized.
 require('config.lsp')

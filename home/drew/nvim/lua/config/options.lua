@@ -16,7 +16,10 @@ vim.opt.textwidth = 0
 vim.opt.foldmethod = "expr"
 vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldlevelstart = 10
-vim.opt.shell = "/usr/bin/zsh"
+local zsh = vim.fn.exepath("zsh")
+if zsh ~= "" then
+    vim.opt.shell = zsh
+end
 vim.opt.timeout = true
 vim.opt.timeoutlen = 500
 vim.opt.ttimeout = true

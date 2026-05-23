@@ -1,203 +1,99 @@
-return {
-    {
-        url = "https://codeberg.org/andyg/leap.nvim",
-        keys = {
-            {
-                "<leader>jj",
-                "<Plug>(leap-forward)",
-                mode = { "n", "x", "o" },
-                desc = "Leap forward",
-                remap = true,
-            },
-            {
-                "<leader>jl",
-                "<Plug>(leap-forward-till)",
-                mode = { "n", "x", "o" },
-                desc = "Leap forward till",
-                remap = true,
-            },
-            {
-                "<leader>jk",
-                "<Plug>(leap-backward)",
-                mode = { "n", "x", "o" },
-                desc = "Leap backward",
-                remap = true,
-            },
-            {
-                "<leader>jh",
-                "<Plug>(leap-backward-till)",
-                mode = { "n", "x", "o" },
-                desc = "Leap backward till",
-                remap = true,
-            },
-            {
-                "<leader>jw",
-                "<Plug>(leap-cross-window)",
-                mode = { "n", "x", "o" },
-                desc = "Leap window",
-                remap = true,
-            },
-        },
-        config = function()
-            require("leap").opts.vim_opts["go.ignorecase"] = false
-        end,
+require("leap").opts.vim_opts["go.ignorecase"] = false
+
+local map = vim.keymap.set
+local opts = { silent = true }
+
+map({ "n", "x", "o" }, "<leader>jj", "<Plug>(leap-forward)", { remap = true, desc = "Leap forward" })
+map({ "n", "x", "o" }, "<leader>jl", "<Plug>(leap-forward-till)", { remap = true, desc = "Leap forward till" })
+map({ "n", "x", "o" }, "<leader>jk", "<Plug>(leap-backward)", { remap = true, desc = "Leap backward" })
+map({ "n", "x", "o" }, "<leader>jh", "<Plug>(leap-backward-till)", { remap = true, desc = "Leap backward till" })
+map({ "n", "x", "o" }, "<leader>jw", "<Plug>(leap-cross-window)", { remap = true, desc = "Leap window" })
+
+require("overseer").setup({
+    task_list = {
+        direction = "bottom",
+        min_height = 10,
+        max_height = 18,
+        default_detail = 1,
     },
-    {
-        "stevearc/overseer.nvim",
-        cmd = {
-            "OverseerBuild",
-            "OverseerClearCache",
-            "OverseerClose",
-            "OverseerDeleteBundle",
-            "OverseerInfo",
-            "OverseerLoadBundle",
-            "OverseerOpen",
-            "OverseerQuickAction",
-            "OverseerRun",
-            "OverseerRunCmd",
-            "OverseerSaveBundle",
-            "OverseerTaskAction",
-            "OverseerToggle",
-        },
-        opts = {
-            task_list = {
-                direction = "bottom",
-                min_height = 10,
-                max_height = 18,
-                default_detail = 1,
-            },
-            form = { border = "rounded" },
-            confirm = { border = "rounded" },
-            task_win = { border = "rounded" },
+    form = { border = "rounded" },
+    confirm = { border = "rounded" },
+    task_win = { border = "rounded" },
+})
+
+require("yazi").setup({
+    open_for_directories = true,
+    floating_window_scaling_factor = 0.9,
+    yazi_floating_window_border = "single",
+})
+
+map("n", "<leader>fb", "<cmd>Yazi<cr>", { silent = true, desc = "File browser" })
+
+local actions = require("fzf-lua.actions")
+require("fzf-lua").setup({
+    winopts = {
+        width = 0.9,
+        height = 0.8,
+        backdrop = false,
+        border = "rounded",
+        preview = {
+            layout = "horizontal",
+            ratio = 50,
         },
     },
-    {
-        "mikavilpas/yazi.nvim",
-        opts = {
-            open_for_directories = true,
-            floating_window_scaling_factor = 0.9,
-            yazi_floating_window_border = "single",
-        },
-        keys = {
-            { "<leader>fb", "<cmd>Yazi<cr>", desc = "File browser" },
+    files = {
+        cmd = "rg --files --hidden --iglob !.git/",
+    },
+    actions = {
+        files = {
+            ["enter"] = actions.file_edit,
+            ["ctrl-s"] = actions.file_split,
+            ["ctrl-v"] = actions.file_vsplit,
+            ["ctrl-t"] = actions.file_tabedit,
         },
     },
-    {
-        "ibhagwan/fzf-lua",
-        dependencies = { { "junegunn/fzf", build = "./install --all" } },
-        keys = {
-            {
-                "<leader>ff",
-                function()
-                    require("fzf-lua").files()
-                end,
-                desc = "Find files",
-            },
-            {
-                "<leader>fi",
-                function()
-                    require("fzf-lua").live_grep()
-                end,
-                desc = "Grep files",
-            },
-            {
-                "<leader>fs",
-                function()
-                    require("fzf-lua").lsp_document_symbols()
-                end,
-                desc = "Document symbols",
-            },
-            {
-                "<leader>fS",
-                function()
-                    require("fzf-lua").lsp_workspace_symbols()
-                end,
-                desc = "Workspace symbols",
-            },
-            {
-                "<leader>fd",
-                function()
-                    require("fzf-lua").diagnostics_document()
-                end,
-                desc = "Document diagnostics",
-            },
-            {
-                "<leader>fD",
-                function()
-                    require("fzf-lua").diagnostics_workspace()
-                end,
-                desc = "Workspace diagnostics",
-            },
-        },
-        config = function()
-            local actions = require("fzf-lua.actions")
-            require("fzf-lua").setup({
-                winopts = {
-                    width = 0.9,
-                    height = 0.8,
-                    backdrop = false,
-                    border = "rounded",
-                    preview = {
-                        layout = "horizontal",
-                        ratio = 50,
-                    },
-                },
-                files = {
-                    cmd = "rg --files --hidden --iglob !.git/",
-                },
-                actions = {
-                    files = {
-                        ["enter"] = actions.file_edit,
-                        ["ctrl-s"] = actions.file_split,
-                        ["ctrl-v"] = actions.file_vsplit,
-                        ["ctrl-t"] = actions.file_tabedit,
-                    },
-                },
-            })
-        end,
+})
+
+map("n", "<leader>ff", function()
+    require("fzf-lua").files()
+end, vim.tbl_extend("force", opts, { desc = "Find files" }))
+map("n", "<leader>fi", function()
+    require("fzf-lua").live_grep()
+end, vim.tbl_extend("force", opts, { desc = "Grep files" }))
+map("n", "<leader>fs", function()
+    require("fzf-lua").lsp_document_symbols()
+end, vim.tbl_extend("force", opts, { desc = "Document symbols" }))
+map("n", "<leader>fS", function()
+    require("fzf-lua").lsp_workspace_symbols()
+end, vim.tbl_extend("force", opts, { desc = "Workspace symbols" }))
+map("n", "<leader>fd", function()
+    require("fzf-lua").diagnostics_document()
+end, vim.tbl_extend("force", opts, { desc = "Document diagnostics" }))
+map("n", "<leader>fD", function()
+    require("fzf-lua").diagnostics_workspace()
+end, vim.tbl_extend("force", opts, { desc = "Workspace diagnostics" }))
+
+map("n", "<C-h>", "<cmd>TmuxNavigateLeft<cr>", opts)
+map("n", "<C-j>", "<cmd>TmuxNavigateDown<cr>", opts)
+map("n", "<C-k>", "<cmd>TmuxNavigateUp<cr>", opts)
+map("n", "<C-l>", "<cmd>TmuxNavigateRight<cr>", opts)
+
+require("nvim-surround").setup({})
+
+require("conform").setup({
+    formatters_by_ft = {
+        lua = { "stylua" },
+        javascript = { "prettierd", "prettier" },
+        typescript = { "prettierd", "prettier" },
+        vue = { "prettierd", "prettier" },
+        css = { "prettierd", "prettier" },
+        html = { "prettierd", "prettier" },
+        json = { "prettierd", "prettier" },
+        php = { "php-cs-fixer" },
+        rust = { "rustfmt" },
     },
-    {
-        "christoomey/vim-tmux-navigator",
-        cmd = {
-            "TmuxNavigateLeft",
-            "TmuxNavigateDown",
-            "TmuxNavigateUp",
-            "TmuxNavigateRight",
-        },
-        keys = {
-            { "<C-h>", "<cmd>TmuxNavigateLeft<cr>" },
-            { "<C-j>", "<cmd>TmuxNavigateDown<cr>" },
-            { "<C-k>", "<cmd>TmuxNavigateUp<cr>" },
-            { "<C-l>", "<cmd>TmuxNavigateRight<cr>" },
-        },
-    },
-    { "wincent/ferret", cmd = { "Ack", "Acks", "Back", "Black", "Lack", "Lacks", "Quack" } },
-    { "kylechui/nvim-surround", version = "*", event = "VeryLazy", config = true },
-    { "tpope/vim-abolish", event = "VeryLazy" },
-    {
-        "stevearc/conform.nvim",
-        keys = {
-            {
-                "<leader>cf",
-                function()
-                    require("conform").format({ async = true, lsp_fallback = true })
-                end,
-                mode = { "n", "v" },
-                desc = "Format buffer",
-            },
-        },
-        opts = {
-            formatters_by_ft = {
-                lua = { "stylua" },
-                javascript = { "prettier" },
-                typescript = { "prettier" },
-                vue = { "prettier" },
-                css = { "prettier" },
-                html = { "prettier" },
-                json = { "prettier" },
-                php = { "pint" },
-                rust = { "rustfmt" },
-            },
-        },
-    },
-}
+})
+
+map({ "n", "v" }, "<leader>cf", function()
+    require("conform").format({ async = true, lsp_fallback = true })
+end, vim.tbl_extend("force", opts, { desc = "Format buffer" }))

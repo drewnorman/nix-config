@@ -58,6 +58,7 @@ local servers = {
             less = { colorDecorators = false },
         },
     }),
+    emmet_language_server = default_config,
     html = default_config,
     intelephense = vim.tbl_deep_extend("force", default_config, {
         settings = {

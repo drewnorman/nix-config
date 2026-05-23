@@ -1,5 +1,34 @@
 { pkgs, ... }:
 
+let
+  treesitterWithGrammars = pkgs.vimPlugins.nvim-treesitter.withPlugins (parsers: with parsers; [
+    bash
+    c
+    css
+    diff
+    html
+    java
+    javascript
+    json
+    lua
+    markdown
+    markdown_inline
+    nix
+    php
+    query
+    regex
+    rust
+    tsx
+    twig
+    typescript
+    vim
+    vimdoc
+    vue
+    xml
+    yaml
+  ]);
+in
+
 {
   home = {
     username = "drew";
@@ -23,12 +52,61 @@
 
   programs.neovim = {
     enable = true;
+    defaultEditor = true;
+    viAlias = true;
+    vimAlias = true;
+    withNodeJs = true;
     withPython3 = false;
     withRuby = false;
+
+    extraPackages = with pkgs; [
+      emmet-language-server
+      fzf
+      intelephense
+      jdt-language-server
+      lua-language-server
+      nixd
+      phpPackages.php-cs-fixer
+      prettier
+      prettierd
+      ripgrep
+      stylua
+      tailwindcss-language-server
+      typescript-language-server
+      vscode-langservers-extracted
+      zsh
+    ];
+
+    plugins = with pkgs.vimPlugins; [
+      aerial-nvim
+      blink-cmp
+      conform-nvim
+      fidget-nvim
+      friendly-snippets
+      fzf-lua
+      gitsigns-nvim
+      indent-blankline-nvim
+      lazygit-nvim
+      leap-nvim
+      lualine-nvim
+      luasnip
+      neoscroll-nvim
+      nvim-lspconfig
+      nvim-surround
+      nvim-treesitter-textobjects
+      overseer-nvim
+      papercolor-theme-slim
+      plenary-nvim
+      treesitterWithGrammars
+      vim-abolish
+      ferret
+      vim-tmux-navigator
+      which-key-nvim
+      yazi-nvim
+    ];
   };
 
-  xdg.configFile."nvim/init.lua".source = ./nvim/init.lua;
-  xdg.configFile."nvim/lua".source = ./nvim/lua;
+  xdg.configFile."nvim".source = ./nvim;
 
   programs.home-manager.enable = true;
 
