@@ -1,54 +1,53 @@
 # Installation
 
-## Proxmox Lab Nix Host (`lab-nix`)
+## ThinkPad X1 Carbon Gen 9 (`x1c-g9`)
 
-The `lab-nix` flake output targets the homelab Proxmox LXC of the same name.
-The homelab OpenTofu configuration reserves `172.16.0.240`, keeps the container
-running, and AdGuard resolves `nix.lab.adre.me` to that address.
+This flake output targets the laptop replacing the current Arch install.
+It assumes encrypted BTRFS with opt-in persistence for both system state and
+Drew's home.
 
-### 1. Build the LXC template
+### BTRFS layout
 
-```sh
-nix build .#lab-nix-lxc-template
-```
-
-### 2. Upload to Proxmox
-
-Upload `result` to the Proxmox host as:
-
-```
-local:vztmpl/nixos-lxc-lab-nix.tar.xz
-```
-
-### 3. Provision with OpenTofu
-
-Apply the homelab OpenTofu configuration. It will create and start the
-container from the uploaded template.
-
-### 4. Connect
+After opening the LUKS device as `crypted`, create these subvolumes:
 
 ```sh
-ssh drew@nix.lab.adre.me
+mount /dev/mapper/crypted /mnt
+btrfs subvolume create /mnt/root
+btrfs subvolume create /mnt/nix
+btrfs subvolume create /mnt/persist
+btrfs subvolume snapshot -r /mnt/root /mnt/root-blank
+umount /mnt
+```
+
+`root-blank` is the blank root snapshot. On each boot, initrd deletes the
+mutable `root` subvolume and recreates it from `root-blank`.
+
+### Mounts
+
+```sh
+mount -o subvol=root,compress=zstd,noatime /dev/mapper/crypted /mnt
+mkdir -p /mnt/{boot,nix,persist}
+mount -o subvol=nix,compress=zstd,noatime /dev/mapper/crypted /mnt/nix
+mount -o subvol=persist,compress=zstd,noatime /dev/mapper/crypted /mnt/persist
+mount /dev/disk/by-uuid/C33D-CFED /mnt/boot
+```
+
+Create the persisted password file before install:
+
+```sh
+mkdir -p /mnt/persist/secrets/users/drew
+mkpasswd -m sha-512 > /mnt/persist/secrets/users/drew/password
+chmod 600 /mnt/persist/secrets/users/drew/password
+```
+
+### Install
+
+```sh
+nixos-install --flake .#x1c-g9
 ```
 
 ### Rebuilding
 
-**Remotely** from this repo on any machine:
-
 ```sh
-nixos-rebuild switch --flake .#lab-nix --target-host drew@nix.lab.adre.me --use-remote-sudo
-```
-
-**Locally** from the host itself — clone the repo once, then pull and rebuild:
-
-```sh
-git clone git@github.com:drewnorman/nix-config.git ~/.nix-config
-cd ~/.nix-config
-sudo nixos-rebuild switch --flake .#lab-nix
-```
-
-For subsequent updates:
-
-```sh
-cd ~/.nix-config && git pull && sudo nixos-rebuild switch --flake .#lab-nix
+sudo nixos-rebuild switch --flake .#x1c-g9
 ```

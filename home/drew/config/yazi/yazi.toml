@@ -1,0 +1,31 @@
+[mgr]
+show_hidden = true
+
+[opener]
+edit = [
+	{ run = 'if [ -n "$NVIM" ]; then nvim --server "$NVIM" --remote %s; else ${EDITOR:-nvim} %s; fi', block = true, desc = "Edit in Neovim", for = "unix" },
+]
+image = [
+	{ run = 'imv "$@"', orphan = true, desc = "Open with imv", for = "unix" },
+]
+video = [
+	{ run = 'mpv "$@"', orphan = true, desc = "Open with mpv", for = "unix" },
+]
+
+[open]
+rules = [
+	{ mime = "image/*", use = "image" },
+	{ mime = "video/*", use = "video" },
+]
+
+[plugin]
+prepend_previewers = [
+	{ mime = "image/*", run = "noop" },
+	{ mime = "video/*", run = "noop" },
+]
+
+[input]
+cursor_blink = false
+shell_title = [ " shell ", " shell block " ]
+search_title = " search {n} "
+find_title = [ " find ", " find previous " ]

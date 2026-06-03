@@ -1,0 +1,48 @@
+# Make Yazi popups behave like ordinary Neovim terminal popups:
+# one Esc (or Ctrl-c) closes input/search/shell prompts instead of entering
+# the input component's normal mode first.
+
+[[mgr.prepend_keymap]]
+on  = "<C-c>"
+run = "escape --all"
+desc = "Cancel pending state"
+
+[[input.prepend_keymap]]
+on  = "<Esc>"
+run = "close"
+desc = "Cancel input"
+
+[[input.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Cancel input"
+
+[[cmp.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Cancel completion"
+
+[[pick.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Cancel pick"
+
+[[confirm.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Cancel confirm"
+
+[[tasks.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Close task manager"
+
+[[spot.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Close spot"
+
+[[help.prepend_keymap]]
+on  = "<C-c>"
+run = "close"
+desc = "Close help"

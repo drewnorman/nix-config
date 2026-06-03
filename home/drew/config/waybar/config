@@ -1,0 +1,65 @@
+{
+    "height": 30,
+    "modules-left": ["sway/workspaces", "sway/window"],
+    "modules-center": ["clock"],
+    "modules-right": ["pulseaudio", "network", "cpu", "memory", "temperature", "battery", "tray"],
+    "tray": {
+        "spacing": 10
+    },
+    "clock": {
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+        "format": "{:%a %b %d %H:%M:%S}",
+        "interval": 1
+    },
+    "cpu": {
+        "format": ""
+    },
+    "memory": {
+        "format": ""
+    },
+    "temperature": {
+        "critical-threshold": 80,
+        "format": "{icon}",
+        "format-icons": [""],
+        "tooltip-format": "{temperatureC}°C"
+    },
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon}",
+        "format-charging": "",
+        "format-plugged": "",
+        "format-icons": ["", "", "", "", ""]
+    },
+    "network": {
+        "interval": 30,
+        "format-wifi": "",
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+        "format-ethernet": "",
+        "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
+        "format-linked": "(No IP) ",
+        "tooltip-format-linked": "{ifname} (No IP)",
+        "format-disconnected": "⚠",
+        "tooltip-format-disconnected": "Disconnected"
+    },
+    "pulseaudio": {
+        "format": "{icon}",
+        "format-bluetooth": "{icon}",
+        "format-bluetooth-muted": "ﱝ {icon}",
+        "format-muted": "ﱝ ",
+        "format-source": "",
+        "format-source-muted": "",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
+    }
+}

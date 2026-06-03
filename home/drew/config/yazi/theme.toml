@@ -1,0 +1,127 @@
+# PaperColorSlimLight-inspired Yazi theme.
+
+[app]
+overall = { bg = "#ffffff" }
+
+[mgr]
+cwd             = { fg = "#005f87", bold = true }
+find_keyword    = { fg = "#008700", bg = "#afff87" }
+find_position   = { fg = "#af5f00", bg = "#e4e4e4" }
+symlink_target  = { fg = "#878787", italic = true }
+marker_copied   = { fg = "#008700", bg = "#e4e4e4" }
+marker_cut      = { fg = "#af0000", bg = "#e4e4e4" }
+marker_marked   = { fg = "#8700af", bg = "#e4e4e4" }
+marker_selected = { fg = "#005faf", bg = "#e4e4e4" }
+count_copied    = { fg = "#008700", bg = "#e4e4e4" }
+count_cut       = { fg = "#af0000", bg = "#e4e4e4" }
+count_selected  = { fg = "#005faf", bg = "#e4e4e4" }
+border_symbol   = "│"
+border_style    = { fg = "#005f87" }
+
+[indicator]
+parent  = { fg = "#0087af", bg = "#e4e4e4" }
+current = { fg = "#005f87", bg = "#e4e4e4" }
+preview = { fg = "#0087af", bg = "#e4e4e4" }
+padding = { open = "█", close = "█" }
+
+[tabs]
+active    = { fg = "#fffff0", bg = "#005f87", bold = true }
+inactive  = { fg = "#444444", bg = "#c6c6c6" }
+sep_inner = { open = "[", close = "]" }
+sep_outer = { open = "", close = "" }
+
+[mode]
+normal_main = { fg = "#fffff0", bg = "#005f87", bold = true }
+normal_alt  = { fg = "#005f87", bg = "#e4e4e4" }
+select_main = { fg = "#fffff0", bg = "#008700", bold = true }
+select_alt  = { fg = "#008700", bg = "#e4e4e4" }
+unset_main  = { fg = "#fffff0", bg = "#8700af", bold = true }
+unset_alt   = { fg = "#8700af", bg = "#e4e4e4" }
+
+[status]
+overall         = { fg = "#444444", bg = "#efefef" }
+sep_left        = { open = "", close = "" }
+sep_right       = { open = "", close = "" }
+perm_type       = { fg = "#0087af" }
+perm_read       = { fg = "#008700" }
+perm_write      = { fg = "#af5f00" }
+perm_exec       = { fg = "#af0000" }
+perm_sep        = { fg = "#878787" }
+progress_label  = { fg = "#444444", bold = true }
+progress_normal = { fg = "#005f87", bg = "#c6c6c6" }
+progress_error  = { fg = "#af0000", bg = "#c6c6c6" }
+
+[which]
+cols            = 3
+mask            = { bg = "#e4e4e4" }
+cand            = { fg = "#005faf", bold = true }
+rest            = { fg = "#878787" }
+desc            = { fg = "#444444" }
+separator       = " -> "
+separator_style = { fg = "#878787" }
+
+[confirm]
+border     = { fg = "#005f87" }
+title      = { fg = "#008700", bold = true }
+body       = { fg = "#444444" }
+list       = { fg = "#444444" }
+btn_yes    = { fg = "#fffff0", bg = "#008700", bold = true }
+btn_no     = { fg = "#444444", bg = "#c6c6c6" }
+btn_labels = [ " yes ", " no " ]
+
+[spot]
+border   = { fg = "#005f87" }
+title    = { fg = "#008700", bold = true }
+tbl_col  = { fg = "#005faf", bg = "#e4e4e4" }
+tbl_cell = { fg = "#444444", bg = "#e4e4e4" }
+
+[notify]
+title_info  = { fg = "#005faf", bold = true }
+title_warn  = { fg = "#af5f00", bold = true }
+title_error = { fg = "#af0000", bold = true }
+
+[pick]
+border   = { fg = "#005f87" }
+active   = { fg = "#fffff0", bg = "#0087af" }
+inactive = { fg = "#444444" }
+
+[input]
+border   = { fg = "#005f87" }
+title    = { fg = "#008700", bold = true }
+value    = { fg = "#444444" }
+selected = { fg = "#fffff0", bg = "#0087af" }
+
+[cmp]
+border       = { fg = "#005f87" }
+active       = { fg = "#fffff0", bg = "#0087af" }
+inactive     = { fg = "#444444" }
+icon_file    = "f"
+icon_folder  = "d"
+icon_command = "$"
+
+[tasks]
+border  = { fg = "#005f87" }
+title   = { fg = "#008700", bold = true }
+hovered = { fg = "#fffff0", bg = "#0087af" }
+
+[help]
+on         = { fg = "#005faf", bold = true }
+run        = { fg = "#8700af" }
+desc       = { fg = "#444444" }
+hovered    = { fg = "#fffff0", bg = "#0087af" }
+footer     = { fg = "#878787", bg = "#e4e4e4" }
+icon_info  = "i"
+icon_warn  = "!"
+icon_error = "x"
+
+[filetype]
+rules = [
+	{ mime = "image/*", fg = "#af5f00" },
+	{ mime = "{audio,video}/*", fg = "#8700af" },
+	{ mime = "application/{zip,tar,gzip,xz,7z,rar}", fg = "#d75f00" },
+	{ mime = "inode/empty", fg = "#878787" },
+	{ url = "*", is = "orphan", fg = "#af0000" },
+	{ url = "*", is = "exec", fg = "#008700" },
+	{ url = "*/", fg = "#0087af", bold = true },
+	{ url = "*", fg = "#444444" },
+]

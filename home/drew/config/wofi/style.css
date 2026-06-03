@@ -1,0 +1,25 @@
+* {
+  font-family: "Inconsolata Medium", monospace;
+}
+
+#entry:selected {
+  background-color: #1c1c1c;
+  color: #ffffff;
+}
+
+#input {
+  background-color: #ffffff;
+  color: #1c1c1c;
+  border: none;
+  border-radius: 0px;
+}
+
+#text {
+  margin-left: 1em;
+}
+
+window {
+  background-color: #ffffff;
+  color: #1c1c1c;
+  border-radius: 5px;
+}

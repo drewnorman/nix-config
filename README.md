@@ -1,26 +1,23 @@
-# NixOS Configurations
+# NixOS Configuration
 
 This repository contains the [NixOS](https://nixos.wiki/wiki/NixOS) and
-[Home Manager](https://nixos.wiki/wiki/Home_Manager) configurations for all of
-my systems. Requires [Nix Flakes](https://nixos.wiki/wiki/Flakes).
+[Home Manager](https://nixos.wiki/wiki/Home_Manager) configuration for my
+ThinkPad X1 Carbon Gen 9. Requires [Nix Flakes](https://nixos.wiki/wiki/Flakes).
 
 ## Hosts
 
-- `nix`: Proxmox LXC intended for the homelab host `lab-nix`.
-  - Hostname: `lab-nix`
-  - LAN name: `nix.lab.adre.me`
-  - Static IP: `192.168.1.240/24`
-  - Gateway: `192.168.1.1`
-  - SSH target: `ssh drew@nix.lab.adre.me`
+- `x1c-g9`: laptop replacement for the current Arch install.
+  - Hostname: `x1c-g9`
+  - Encrypted BTRFS root
+  - Blank `root-blank` snapshot restored to `/` on every boot
+  - Opt-in system persistence under `/persist`
+  - Opt-in Home Manager persistence under `/persist/home/drew`
 
-Build the Proxmox LXC template with:
+Install or rebuild with:
 
 ```sh
-nix build .#lab-nix-lxc-template
+sudo nixos-rebuild switch --flake .#x1c-g9
 ```
 
-Upload the resulting tarball to Proxmox as `local:vztmpl/nixos-lxc-lab-nix.tar.xz`,
-then let the homelab OpenTofu configuration create and start the container.
-
-This host is SSH-only. It does not declare any HTTP service for the homelab
-reverse proxy.
+See [INSTALL.md](./INSTALL.md) for the BTRFS subvolume layout and fresh install
+commands.

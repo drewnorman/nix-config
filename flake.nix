@@ -8,33 +8,36 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    impermanence.url = "github:nix-community/impermanence";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, impermanence, ... }:
     let
       system = "x86_64-linux";
-      nixHostModules = [
-        ./hosts/nix/configuration.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs; };
-          home-manager.users.drew = import ./home/drew/home.nix;
-        }
-      ];
+      homeManagerConfig = {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.extraSpecialArgs = {
+          inherit inputs;
+        };
+        home-manager.users.drew = import ./home/drew/home.nix;
+      };
     in
     {
       nixosConfigurations = {
-        lab-nix = nixpkgs.lib.nixosSystem {
+        x1c-g9 = nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { inherit inputs; };
-          modules = nixHostModules;
+          modules = [
+            ./hosts/x1c-g9/configuration.nix
+            ./modules/nixos/btrfs-impermanence.nix
+            impermanence.nixosModules.impermanence
+            home-manager.nixosModules.home-manager
+            homeManagerConfig
+          ];
         };
       };
-
-      packages.${system}.lab-nix-lxc-template =
-        self.nixosConfigurations.lab-nix.config.system.build.tarball;
 
       devShells.${system}.default = import ./shell.nix {
         pkgs = import nixpkgs {

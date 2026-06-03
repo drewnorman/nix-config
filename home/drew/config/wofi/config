@@ -1,0 +1,10 @@
+allow_images=true
+allow_markup=true
+insensitive=true
+hide_scroll=true
+key_down=Control_L-j
+key_up=Control_L-k
+lines=5
+no_actions=true
+term=alacritty
+width=600
