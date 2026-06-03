@@ -99,8 +99,8 @@
 
   systemd.network = {
     enable = true;
-    networks."25-wlan0" = {
-      matchConfig.Name = "wlan0";
+    networks."25-wireless" = {
+      matchConfig.Type = "wlan";
       networkConfig = {
         DHCP = "yes";
         IPv6AcceptRA = true;
