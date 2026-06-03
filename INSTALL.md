@@ -33,6 +33,7 @@ Create the persisted password file before install:
 mkdir -p /mnt/persist/secrets/users/drew
 mkpasswd -m sha-512 > /mnt/persist/secrets/users/drew/password
 chmod 600 /mnt/persist/secrets/users/drew/password
+install -d -m 700 -o 1000 -g 100 /mnt/persist/home/drew
 ```
 
 ### Install

@@ -74,6 +74,7 @@
     users.drew = {
       isNormalUser = true;
       description = "Drew Norman";
+      uid = 1000;
       extraGroups = [
         "podman"
         "video"

@@ -105,11 +105,14 @@ btrfs subvolume create /mnt/root
 btrfs subvolume create /mnt/nix
 btrfs subvolume create /mnt/persist
 btrfs subvolume snapshot -r /mnt/root /mnt/root-blank
+install -d -m 700 -o 1000 -g 100 /mnt/persist/home/drew
 umount /mnt
 ```
 
 `root-blank` is the blank readonly root snapshot. On each boot, initrd deletes
 the mutable `root` subvolume and recreates it from `root-blank`.
+Home Manager persists Drew's opt-in home state under `/persist/home/drew`; UID
+`1000` and GID `100` match the NixOS user declaration.
 
 ## Verify
 
