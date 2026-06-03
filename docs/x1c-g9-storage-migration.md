@@ -17,6 +17,15 @@ volume group `vg`:
 Boot from trusted live media with `cryptsetup`, `lvm2`, and `btrfs-progs`
 available.
 
+Record the current EFI state before installing NixOS. NixOS uses
+systemd-boot on the shared ESP, so keep the existing Arch EFI entry and boot
+order handy in case firmware defaults change after installation.
+
+```sh
+efibootmgr -v
+find /boot/efi /boot -maxdepth 3 -type f 2>/dev/null
+```
+
 ```sh
 cryptsetup open /dev/disk/by-uuid/208b84fc-d18e-42a6-9ede-489f50421821 crypted
 vgchange -ay vg
@@ -104,3 +113,19 @@ mount /dev/vg/nixos /mnt
 btrfs subvolume list /mnt
 umount /mnt
 ```
+
+## Arch Boot Fallback
+
+Keep Arch bootable through its existing EFI entry unless you intentionally move
+it under the NixOS-managed systemd-boot menu. After NixOS installation, verify
+both entries are still present:
+
+```sh
+efibootmgr -v
+bootctl status
+```
+
+If firmware now defaults to NixOS, use `efibootmgr` or the firmware boot menu to
+select the original Arch entry. If you want Arch in the systemd-boot menu later,
+add a checked-in loader entry only after confirming Arch's kernel/initramfs paths
+on the ESP and its root kernel arguments.
