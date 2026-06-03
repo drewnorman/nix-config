@@ -144,3 +144,15 @@ If firmware now defaults to NixOS, use `efibootmgr` or the firmware boot menu to
 select the original Arch entry. If you want Arch in the systemd-boot menu later,
 add a checked-in loader entry only after confirming Arch's kernel/initramfs paths
 on the ESP and its root kernel arguments.
+
+## Hibernate Check
+
+The NixOS swap LV is sized at `34G` for hibernation. Before depending on it,
+compare the installed RAM size with the swap LV and test one full hibernate and
+resume cycle from NixOS:
+
+```sh
+free -h
+swapon --show
+systemctl hibernate
+```

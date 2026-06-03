@@ -42,6 +42,22 @@ install -d -m 700 -o 1000 -g 100 /mnt/persist/home/drew
 nixos-install --flake .#x1c-g9
 ```
 
+### First boot checks
+
+After the first successful NixOS boot, confirm the shared ESP still has the
+expected boot entries and that hibernate can resume from the NixOS swap LV:
+
+```sh
+sudo efibootmgr -v
+bootctl status
+free -h
+swapon --show
+systemctl hibernate
+```
+
+The configured swap LV is `34G`. Increase it before relying on hibernation if
+installed RAM exceeds that capacity.
+
 ### Rebuilding
 
 ```sh
