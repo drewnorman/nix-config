@@ -111,6 +111,7 @@ in
       yarn
       yazi
       zoxide
+      imv
     ];
 
     persistence."/persist/home" = {
@@ -140,15 +141,12 @@ in
         ".mozilla"
         ".npm"
         ".password-store"
+        ".sbw"
         ".ssh"
-        "Desktop"
-        "Documents"
-        "Downloads"
-        "Music"
-        "Pictures"
-        "Public"
-        "Templates"
-        "Videos"
+        ".wallpapers"
+        "documents"
+        "downloads"
+        "pictures"
         "code"
       ];
       files = [
@@ -166,7 +164,10 @@ in
         ".wget-hsts"
         ".yarnrc"
         ".z"
+        ".p10k.zsh"
+        ".zsh_aliases"
         ".zsh_history"
+        ".zshrc.local"
       ];
     };
   };
@@ -345,6 +346,26 @@ in
       lsa = "eza -la";
       q = "exit";
     };
+    initContent = ''
+      export GPG_TTY="$(tty)"
+      export SSH_AUTH_SOCK="$HOME/.sbw/ssh-agent.sock"
+
+      if [ -f "$HOME/.zsh_aliases" ]; then
+        source "$HOME/.zsh_aliases"
+      fi
+
+      if [ -f "$HOME/.zshrc.local" ]; then
+        source "$HOME/.zshrc.local"
+      fi
+
+      if [ -f "$HOME/.p10k.zsh" ]; then
+        source "$HOME/.p10k.zsh"
+      fi
+
+      if [ -z "$TMUX" ] && [ -n "$PS1" ] && command -v tmux >/dev/null 2>&1; then
+        tmux new-session -A -s main
+      fi
+    '';
   };
 
   programs.tmux = {

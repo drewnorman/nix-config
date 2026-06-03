@@ -16,11 +16,14 @@
         "sd_mod"
       ];
       luks.devices.crypted.device = "/dev/disk/by-uuid/208b84fc-d18e-42a6-9ede-489f50421821";
+      services.lvm.enable = true;
     };
 
     kernelModules = [
       "kvm-intel"
     ];
+
+    resumeDevice = "/dev/vg/nixos-swap";
 
     loader = {
       systemd-boot.enable = true;
@@ -37,11 +40,16 @@
     ];
   };
 
-  swapDevices = [ ];
+  swapDevices = [
+    {
+      device = "/dev/vg/nixos-swap";
+    }
+  ];
 
   nixpkgs.config.allowUnfree = true;
   hardware = {
     acpilight.enable = true;
+    cpu.intel.updateMicrocode = true;
     enableRedistributableFirmware = true;
     bluetooth.enable = true;
     firmware = with pkgs; [
@@ -59,7 +67,8 @@
   };
 
   networking = {
-    networkmanager.enable = true;
+    useNetworkd = true;
+    wireless.iwd.enable = true;
     firewall = {
       enable = true;
       allowedTCPPorts = [ 22 ];
@@ -79,7 +88,9 @@
     fstrim.enable = true;
     fwupd.enable = true;
     libinput.enable = true;
+    resolved.enable = true;
     tailscale.enable = true;
+    tlp.enable = true;
     udisks2.enable = true;
 
     pipewire = {
@@ -111,7 +122,6 @@
       isNormalUser = true;
       description = "Drew Norman";
       extraGroups = [
-        "networkmanager"
         "podman"
         "video"
         "wheel"
@@ -129,14 +139,25 @@
     podman = {
       enable = true;
       dockerCompat = true;
+      dockerSocket.enable = true;
       defaultNetwork.settings.dns_enabled = true;
+    };
+  };
+
+  systemd.network = {
+    enable = true;
+    networks."25-wlan0" = {
+      matchConfig.Name = "wlan0";
+      networkConfig = {
+        DHCP = "yes";
+        IPv6AcceptRA = true;
+      };
     };
   };
 
   programs = {
     firefox.enable = true;
     git.enable = true;
-    nm-applet.enable = true;
     ssh.startAgent = true;
     sway = {
       enable = true;
@@ -146,6 +167,7 @@
         gammastep
         grim
         mako
+        xdg-desktop-portal-wlr
         slurp
         swayidle
         swaylock-effects
@@ -156,6 +178,19 @@
       ];
     };
     zsh.enable = true;
+  };
+
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+      xdg-desktop-portal-wlr
+    ];
+    config.common.default = [
+      "wlr"
+      "gtk"
+    ];
   };
 
   fonts.packages = with pkgs; [

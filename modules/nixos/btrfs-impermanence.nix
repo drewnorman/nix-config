@@ -6,14 +6,14 @@
   boot.initrd.systemd.services.rollback-btrfs-root = {
     description = "Rollback BTRFS root subvolume to blank snapshot";
     wantedBy = [ "initrd.target" ];
-    requires = [ "dev-mapper-crypted.device" ];
-    after = [ "dev-mapper-crypted.device" ];
+    requires = [ "dev-vg-nixos.device" ];
+    after = [ "dev-vg-nixos.device" ];
     before = [ "sysroot.mount" ];
     unitConfig.DefaultDependencies = false;
     serviceConfig.Type = "oneshot";
     script = ''
       mkdir -p /mnt
-      mount -o subvol=/ /dev/mapper/crypted /mnt
+      mount -o subvol=/ /dev/vg/nixos /mnt
 
       if [ -e /mnt/root-blank ]; then
         if [ -e /mnt/root ]; then
@@ -33,7 +33,7 @@
   };
 
   fileSystems."/" = {
-    device = "/dev/mapper/crypted";
+    device = "/dev/vg/nixos";
     fsType = "btrfs";
     options = [
       "subvol=root"
@@ -43,7 +43,7 @@
   };
 
   fileSystems."/nix" = {
-    device = "/dev/mapper/crypted";
+    device = "/dev/vg/nixos";
     fsType = "btrfs";
     options = [
       "subvol=nix"
@@ -53,7 +53,7 @@
   };
 
   fileSystems."/persist" = {
-    device = "/dev/mapper/crypted";
+    device = "/dev/vg/nixos";
     fsType = "btrfs";
     neededForBoot = true;
     options = [
@@ -66,7 +66,6 @@
   environment.persistence."/persist" = {
     hideMounts = true;
     directories = [
-      "/etc/NetworkManager/system-connections"
       "/var/lib/bluetooth"
       "/var/lib/containers"
       "/var/lib/fprint"

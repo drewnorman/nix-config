@@ -3,33 +3,28 @@
 ## ThinkPad X1 Carbon Gen 9 (`x1c-g9`)
 
 This flake output targets the laptop replacing the current Arch install.
-It assumes encrypted BTRFS with opt-in persistence for both system state and
-Drew's home.
+It assumes the encrypted LUKS, LVM, BTRFS, and swap layout has already been
+created, with opt-in persistence for both system state and Drew's home.
 
-### BTRFS layout
+### Storage preparation
 
-After opening the LUKS device as `crypted`, create these subvolumes:
-
-```sh
-mount /dev/mapper/crypted /mnt
-btrfs subvolume create /mnt/root
-btrfs subvolume create /mnt/nix
-btrfs subvolume create /mnt/persist
-btrfs subvolume snapshot -r /mnt/root /mnt/root-blank
-umount /mnt
-```
-
-`root-blank` is the blank root snapshot. On each boot, initrd deletes the
-mutable `root` subvolume and recreates it from `root-blank`.
+Follow [docs/x1c-g9-storage-migration.md](docs/x1c-g9-storage-migration.md)
+before installing. The NixOS configuration expects `/dev/vg/nixos` to contain
+the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available for swap and
+hibernate resume.
 
 ### Mounts
 
 ```sh
-mount -o subvol=root,compress=zstd,noatime /dev/mapper/crypted /mnt
+cryptsetup open /dev/disk/by-uuid/208b84fc-d18e-42a6-9ede-489f50421821 crypted
+vgchange -ay vg
+
+mount -o subvol=root,compress=zstd,noatime /dev/vg/nixos /mnt
 mkdir -p /mnt/{boot,nix,persist}
-mount -o subvol=nix,compress=zstd,noatime /dev/mapper/crypted /mnt/nix
-mount -o subvol=persist,compress=zstd,noatime /dev/mapper/crypted /mnt/persist
+mount -o subvol=nix,compress=zstd,noatime /dev/vg/nixos /mnt/nix
+mount -o subvol=persist,compress=zstd,noatime /dev/vg/nixos /mnt/persist
 mount /dev/disk/by-uuid/C33D-CFED /mnt/boot
+swapon /dev/vg/nixos-swap
 ```
 
 Create the persisted password file before install:
