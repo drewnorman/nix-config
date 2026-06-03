@@ -62,7 +62,19 @@ lvreduce --resizefs --size 40G /dev/vg/home
 ## Reuse Arch Nix LV
 
 The existing Arch `vg/nix` LV is disposable for this migration. Remove it if it
-exists and is not mounted.
+exists, is not mounted, and Arch no longer expects it at boot.
+
+Check Arch's filesystem configuration before removing the LV:
+
+```sh
+mount /dev/vg/root /mnt
+grep -R "vg/nix\|/nix" /mnt/etc/fstab /mnt/etc/systemd/system 2>/dev/null || true
+umount /mnt
+```
+
+If Arch still references `/dev/vg/nix` or `/nix`, remove that mount or mark it
+`nofail` before continuing. Rebuild Arch's initramfs if the old LV appears in
+initramfs hooks or boot-critical mount configuration.
 
 ```sh
 lvremove /dev/vg/nix
