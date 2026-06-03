@@ -1,7 +1,14 @@
-{ lib, ... }:
+{ pkgs, ... }:
 
 {
   boot.initrd.supportedFilesystems = [ "btrfs" ];
+  boot.initrd.systemd.storePaths = with pkgs; [
+    btrfs-progs
+    coreutils
+    gawk
+    gnused
+    util-linux
+  ];
 
   boot.initrd.systemd.services.rollback-btrfs-root = {
     description = "Rollback BTRFS root subvolume to blank snapshot";
@@ -12,23 +19,31 @@
     unitConfig.DefaultDependencies = false;
     serviceConfig.Type = "oneshot";
     script = ''
+      set -euo pipefail
+
       mkdir -p /mnt
+      trap 'umount /mnt 2>/dev/null || true' EXIT
+
       mount -o subvol=/ /dev/vg/nixos /mnt
 
-      if [ -e /mnt/root-blank ]; then
-        if [ -e /mnt/root ]; then
-          btrfs subvolume list -o /mnt/root | cut -f9 -d' ' | while read -r subvolume; do
-            btrfs subvolume delete "/mnt/$subvolume"
-          done
-          btrfs subvolume delete /mnt/root
-        fi
-
-        btrfs subvolume snapshot /mnt/root-blank /mnt/root
-      else
+      if ! btrfs subvolume show /mnt/root-blank >/dev/null 2>&1; then
         echo "Missing BTRFS blank snapshot: root-blank" >&2
+        exit 1
       fi
 
-      umount /mnt
+      if [ -e /mnt/root ]; then
+        btrfs subvolume list -o /mnt/root \
+          | cut -f9- -d' ' \
+          | awk '{ path = $0; depth = gsub("/", "/", path); print depth, length($0), $0 }' \
+          | sort -rn -k1,1 -k2,2 \
+          | cut -d' ' -f3- \
+          | while read -r subvolume; do
+            btrfs subvolume delete "/mnt/$subvolume"
+          done
+        btrfs subvolume delete /mnt/root
+      fi
+
+      btrfs subvolume snapshot /mnt/root-blank /mnt/root
     '';
   };
 
