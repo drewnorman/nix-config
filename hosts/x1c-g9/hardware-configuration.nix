@@ -17,6 +17,11 @@
     kernelModules = [
       "kvm-intel"
     ];
+
+    kernel.sysctl = {
+      "vm.swappiness" = 100;
+      "vm.page-cluster" = 0;
+    };
   };
 
   fileSystems."/boot" = {
@@ -31,8 +36,16 @@
   swapDevices = [
     {
       device = "/dev/vg/nixos-swap";
+      priority = 10;
     }
   ];
+
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 50;
+    priority = 100;
+  };
 
   hardware = {
     acpilight.enable = true;

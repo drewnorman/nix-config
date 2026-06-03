@@ -10,7 +10,9 @@ created, with opt-in persistence for both system state and Drew's home.
 
 Follow [docs/x1c-g9-storage-migration.md](docs/x1c-g9-storage-migration.md)
 before installing. The NixOS configuration expects `/dev/vg/nixos` to contain
-the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available for swap.
+the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available as low-priority
+disk swap. ZRAM is enabled by the NixOS configuration and is preferred for
+normal memory pressure.
 
 ### Mounts
 
@@ -44,12 +46,13 @@ nixos-install --flake .#x1c-g9
 ### First boot checks
 
 After the first successful NixOS boot, confirm the shared ESP still has the
-expected boot entries and that the NixOS swap LV is active:
+expected boot entries, ZRAM is active, and the NixOS disk swap LV is available:
 
 ```sh
 sudo efibootmgr -v
 bootctl status
 free -h
+zramctl
 swapon --show
 ```
 
