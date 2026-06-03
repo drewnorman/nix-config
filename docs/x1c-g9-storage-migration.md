@@ -5,12 +5,22 @@ every device path, and do not run commands until the existing Arch LUKS, LVM,
 and filesystem layout is understood.
 
 The target layout keeps Arch and NixOS inside the existing LUKS container with
-volume group `vg`:
+volume group `vg`. Arch stays small and self-contained as a fallback install;
+NixOS gets the remaining SSD space:
 
 - Arch root LV: `40G`
 - Arch home LV: `40G`
-- NixOS swap LV: `34G`
+- Arch swap LV: `8G`
+- NixOS swap LV: `16G`
 - NixOS BTRFS LV: remaining free space
+
+The NixOS swap LV is ordinary low-priority disk swap. NixOS uses ZRAM first for
+normal memory pressure, then falls back to `/dev/vg/nixos-swap` if needed.
+
+The assumed current LVM setup is an existing Arch install under the same LUKS
+container, with `/dev/vg/root`, `/dev/vg/home`, and possibly `/dev/vg/nix` and
+`/dev/vg/swap`. Confirm the actual LV names before running any resize or remove
+commands.
 
 ## Boot And Unlock
 
@@ -59,6 +69,25 @@ lvreduce --resizefs --size 40G /dev/vg/root
 lvreduce --resizefs --size 40G /dev/vg/home
 ```
 
+Keep Arch's swap separate from NixOS swap. If `/dev/vg/swap` already exists,
+turn it off, resize it to `8G`, and recreate the swap signature.
+
+```sh
+swapoff /dev/vg/swap || true
+lvresize --size 8G /dev/vg/swap
+mkswap /dev/vg/swap
+```
+
+If Arch does not already have a swap LV:
+
+```sh
+lvcreate --name swap --size 8G vg
+mkswap /dev/vg/swap
+```
+
+After changing Arch swap, verify Arch's `/etc/fstab` points at the current swap
+UUID or stable LV path.
+
 ## Reuse Arch Nix LV
 
 The existing Arch `vg/nix` LV is disposable for this migration. Remove it if it
@@ -82,11 +111,11 @@ lvremove /dev/vg/nix
 
 ## Create NixOS Volumes
 
-Create a dedicated swap LV, then allocate the remaining free space to the NixOS
-BTRFS LV.
+Create a dedicated NixOS disk swap LV, then allocate the remaining free space to
+the NixOS BTRFS LV.
 
 ```sh
-lvcreate --name nixos-swap --size 34G vg
+lvcreate --name nixos-swap --size 16G vg
 lvcreate --name nixos --extents 100%FREE vg
 ```
 
@@ -149,5 +178,6 @@ on the ESP and its root kernel arguments.
 
 ```sh
 free -h
+zramctl
 swapon --show
 ```
