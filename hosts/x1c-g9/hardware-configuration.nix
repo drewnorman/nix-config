@@ -17,8 +17,6 @@
     kernelModules = [
       "kvm-intel"
     ];
-
-    resumeDevice = "/dev/vg/nixos-swap";
   };
 
   fileSystems."/boot" = {

@@ -10,8 +10,7 @@ created, with opt-in persistence for both system state and Drew's home.
 
 Follow [docs/x1c-g9-storage-migration.md](docs/x1c-g9-storage-migration.md)
 before installing. The NixOS configuration expects `/dev/vg/nixos` to contain
-the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available for swap and
-hibernate resume.
+the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available for swap.
 
 ### Mounts
 
@@ -45,18 +44,14 @@ nixos-install --flake .#x1c-g9
 ### First boot checks
 
 After the first successful NixOS boot, confirm the shared ESP still has the
-expected boot entries and that hibernate can resume from the NixOS swap LV:
+expected boot entries and that the NixOS swap LV is active:
 
 ```sh
 sudo efibootmgr -v
 bootctl status
 free -h
 swapon --show
-systemctl hibernate
 ```
-
-The configured swap LV is `34G`. Increase it before relying on hibernation if
-installed RAM exceeds that capacity.
 
 ### Rebuilding
 

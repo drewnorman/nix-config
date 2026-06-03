@@ -82,8 +82,8 @@ lvremove /dev/vg/nix
 
 ## Create NixOS Volumes
 
-Create a dedicated hibernate-sized swap LV, then allocate the remaining free
-space to the NixOS BTRFS LV.
+Create a dedicated swap LV, then allocate the remaining free space to the NixOS
+BTRFS LV.
 
 ```sh
 lvcreate --name nixos-swap --size 34G vg
@@ -145,14 +145,9 @@ select the original Arch entry. If you want Arch in the systemd-boot menu later,
 add a checked-in loader entry only after confirming Arch's kernel/initramfs paths
 on the ESP and its root kernel arguments.
 
-## Hibernate Check
-
-The NixOS swap LV is sized at `34G` for hibernation. Before depending on it,
-compare the installed RAM size with the swap LV and test one full hibernate and
-resume cycle from NixOS:
+## Swap Check
 
 ```sh
 free -h
 swapon --show
-systemctl hibernate
 ```

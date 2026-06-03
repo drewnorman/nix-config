@@ -100,9 +100,6 @@ input * accel_profile flat
     # Lock
     bindsym $mod+Shift+s+l exec lock-screen
 
-    # Hibernate
-    bindsym $mod+Shift+s+h exec systemctl hibernate
-    
     # Shutdown
     bindsym $mod+Shift+s+x exec poweroff
     
