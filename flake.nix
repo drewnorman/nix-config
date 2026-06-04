@@ -10,6 +10,11 @@
     };
 
     impermanence.url = "github:nix-community/impermanence";
+
+    nix-wrapper-modules = {
+      url = "github:BirdeeHub/nix-wrapper-modules";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ nixpkgs, home-manager, impermanence, ... }:
