@@ -84,7 +84,7 @@
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIH+qwzVnHyU19AY9TKxZD2iCU9/DPSbGq1HIPByr8Hc drew@x1c-g9"
       ];
-      shell = pkgs.zsh;
+      shell = pkgs.fish;
     };
   };
 
@@ -131,7 +131,7 @@
         xwayland
       ];
     };
-    zsh.enable = true;
+    fish.enable = true;
   };
 
   xdg.portal = {

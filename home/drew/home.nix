@@ -114,7 +114,7 @@ in
       imv
     ];
 
-    persistence."/persist/home" = {
+    persistence."/persist" = {
       directories = [
         ".cache/nix"
         ".cargo"
@@ -134,6 +134,7 @@ in
         ".local/share/calibre"
         ".local/share/containers"
         ".local/share/gnupg"
+        ".local/share/fish"
         ".local/share/nvim"
         ".local/share/password-store"
         ".local/share/zoxide"
@@ -153,6 +154,7 @@ in
         ".bash_history"
         ".boto"
         ".claude.json"
+        ".config/fish/local.fish"
         ".gitconfig.local"
         ".mbsyncrc"
         ".node_repl_history"
@@ -160,14 +162,9 @@ in
         ".npmrc"
         ".pam-gnupg"
         ".python_history"
-        ".taskrc"
         ".wget-hsts"
         ".yarnrc"
         ".z"
-        ".p10k.zsh"
-        ".zsh_aliases"
-        ".zsh_history"
-        ".zshrc.local"
       ];
     };
   };
@@ -216,7 +213,6 @@ in
       tailwindcss-language-server
       typescript-language-server
       vscode-langservers-extracted
-      zsh
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -334,51 +330,40 @@ in
     };
   };
 
-  programs.zsh = {
+  programs.fish = {
     enable = true;
-    autosuggestion.enable = true;
-    dotDir = config.home.homeDirectory;
-    enableCompletion = true;
-    syntaxHighlighting.enable = true;
     shellAliases = {
       e = "nvim";
       ls = "eza";
       lsa = "eza -la";
       q = "exit";
     };
-    initContent = ''
-      export GPG_TTY="$(tty)"
-      export SSH_AUTH_SOCK="$HOME/.sbw/ssh-agent.sock"
+    interactiveShellInit = ''
+      set -x GPG_TTY (tty)
 
-      if [ -f "$HOME/.zsh_aliases" ]; then
-        source "$HOME/.zsh_aliases"
-      fi
+      if test -f $__fish_config_dir/local.fish
+        source $__fish_config_dir/local.fish
+      end
 
-      if [ -f "$HOME/.zshrc.local" ]; then
-        source "$HOME/.zshrc.local"
-      fi
-
-      if [ -f "$HOME/.p10k.zsh" ]; then
-        source "$HOME/.p10k.zsh"
-      fi
-
-      if [ -z "$TMUX" ] && [ -n "$PS1" ] && command -v tmux >/dev/null 2>&1; then
+      if test -z "$TMUX"
         tmux new-session -A -s main
-      fi
+      end
     '';
   };
+
+  programs.starship.enable = true;
 
   programs.tmux = {
     enable = true;
     extraConfig = builtins.replaceStrings
-      [ "/usr/bin/zsh" ]
-      [ "${pkgs.zsh}/bin/zsh" ]
+      [ "/usr/bin/fish" ]
+      [ "${pkgs.fish}/bin/fish" ]
       (builtins.readFile ./config/tmux/tmux.conf);
   };
 
   programs.zoxide = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
   };
 
   programs.bat = {
@@ -388,12 +373,12 @@ in
 
   programs.eza = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
   };
 
   programs.fzf = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
   };
 
   programs.gh.enable = true;
@@ -402,7 +387,7 @@ in
 
   programs.yazi = {
     enable = true;
-    enableZshIntegration = true;
+    enableFishIntegration = true;
     shellWrapperName = "yy";
   };
 
