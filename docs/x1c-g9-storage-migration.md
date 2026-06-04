@@ -22,6 +22,45 @@ container, with `/dev/vg/root`, `/dev/vg/home`, and possibly `/dev/vg/nix` and
 `/dev/vg/swap`. Confirm the actual LV names before running any resize or remove
 commands.
 
+## Prepare Arch
+
+Do these steps while booted into the existing Arch install, before switching to
+live media.
+
+### Remove the Nix Store Mount
+
+`/etc/fstab` mounts `vg-nix` at `/nix`. Delete that entry so Arch does not
+attempt to mount a volume that no longer exists after the migration:
+
+```sh
+$EDITOR /etc/fstab   # delete the /dev/mapper/vg-nix line
+```
+
+### Disable Hibernation
+
+With 32 GB of RAM and a target swap size of 8 GB, Arch can no longer hibernate.
+Remove the dead configuration now.
+
+Remove the `resume=` kernel parameter from the bootloader entry:
+
+```sh
+$EDITOR /boot/loader/entries/arch.conf
+# Remove: resume=/dev/mapper/vg-swap
+```
+
+Remove the `resume` hook from the initramfs configuration and rebuild:
+
+```sh
+$EDITOR /etc/mkinitcpio.conf
+# Remove 'resume' from the HOOKS array
+mkinitcpio -P
+```
+
+### Verify
+
+Reboot into Arch. Confirm it boots cleanly, `/nix` is not mounted, and there is
+no resume-related output. Then proceed to live media.
+
 ## Boot And Unlock
 
 Boot from trusted live media with `cryptsetup`, `lvm2`, and `btrfs-progs`
@@ -85,25 +124,20 @@ lvcreate --name swap --size 8G vg
 mkswap /dev/vg/swap
 ```
 
-After changing Arch swap, verify Arch's `/etc/fstab` points at the current swap
-UUID or stable LV path.
-
-## Reuse Arch Nix LV
-
-The existing Arch `vg/nix` LV is disposable for this migration. Remove it if it
-exists, is not mounted, and Arch no longer expects it at boot.
-
-Check Arch's filesystem configuration before removing the LV:
+`mkswap` always generates a new UUID. Get the new UUID and update Arch's
+`/etc/fstab` before rebooting into Arch — the old UUID is now invalid:
 
 ```sh
+blkid /dev/vg/swap
 mount /dev/vg/root /mnt
-grep -R "vg/nix\|/nix" /mnt/etc/fstab /mnt/etc/systemd/system 2>/dev/null || true
+$EDITOR /mnt/etc/fstab   # replace old swap UUID with value from blkid above
 umount /mnt
 ```
 
-If Arch still references `/dev/vg/nix` or `/nix`, remove that mount or mark it
-`nofail` before continuing. Rebuild Arch's initramfs if the old LV appears in
-initramfs hooks or boot-critical mount configuration.
+## Reuse Arch Nix LV
+
+The fstab entry and Arch boot verification were handled in `Prepare Arch`.
+Remove the LV:
 
 ```sh
 lvremove /dev/vg/nix
