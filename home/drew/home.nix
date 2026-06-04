@@ -134,6 +134,7 @@ in
         ".local/share/calibre"
         ".local/share/containers"
         ".local/share/gnupg"
+        ".local/share/direnv"
         ".local/share/fish"
         ".local/share/nvim"
         ".local/share/password-store"
@@ -382,6 +383,12 @@ in
   };
 
   programs.gh.enable = true;
+
+  programs.direnv = {
+    enable = true;
+    enableFishIntegration = true;
+    nix-direnv.enable = true;
+  };
 
   programs.lazygit.enable = true;
 
