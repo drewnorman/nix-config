@@ -1,3 +1,4 @@
+local nix = require(vim.g.nix_info_plugin_name)
 local ok, blink = pcall(require, "blink.cmp")
 local php_stubs = require("config.php_stubs")
 
@@ -50,38 +51,61 @@ local default_config = {
     capabilities = capabilities,
 }
 
-local servers = {
-    cssls = vim.tbl_deep_extend("force", default_config, {
-        settings = {
-            css = { colorDecorators = false },
-            scss = { colorDecorators = false },
-            less = { colorDecorators = false },
-        },
-    }),
-    emmet_language_server = default_config,
-    html = default_config,
-    intelephense = vim.tbl_deep_extend("force", default_config, {
+local servers = {}
+
+if nix(false, "info", "lsp", "emmet") then
+    servers.emmet_language_server = default_config
+end
+
+if nix(false, "info", "lsp", "intelephense") then
+    servers.intelephense = vim.tbl_deep_extend("force", default_config, {
         settings = {
             intelephense = {
                 environment = { phpVersion = "8.2" },
                 stubs = php_stubs,
             },
         },
-    }),
-    jdtls = default_config,
-    jsonls = default_config,
-    lua_ls = vim.tbl_deep_extend("force", default_config, {
+    })
+end
+
+if nix(false, "info", "lsp", "jdtls") then
+    servers.jdtls = default_config
+end
+
+if nix(false, "info", "lsp", "lua") then
+    servers.lua_ls = vim.tbl_deep_extend("force", default_config, {
         settings = {
             Lua = { diagnostics = { globals = { "vim" } } },
         },
-    }),
-    tailwindcss = vim.tbl_deep_extend("force", default_config, {
+    })
+end
+
+if nix(false, "info", "lsp", "nix") then
+    servers.nixd = default_config
+end
+
+if nix(false, "info", "lsp", "tailwind") then
+    servers.tailwindcss = vim.tbl_deep_extend("force", default_config, {
         settings = { tailwindCSS = { colorDecorators = false } },
-    }),
-    nixd = default_config,
-    ts_ls = default_config,
-    vue_ls = default_config,
-}
+    })
+end
+
+if nix(false, "info", "lsp", "typescript") then
+    servers.ts_ls = default_config
+    servers.vue_ls = default_config
+end
+
+if nix(false, "info", "lsp", "vscode") then
+    servers.cssls = vim.tbl_deep_extend("force", default_config, {
+        settings = {
+            css  = { colorDecorators = false },
+            scss = { colorDecorators = false },
+            less = { colorDecorators = false },
+        },
+    })
+    servers.html   = default_config
+    servers.jsonls = default_config
+end
 
 for server, config in pairs(servers) do
     vim.lsp.config(server, config)

@@ -1,7 +1,9 @@
-require("plugins.colorscheme")
-require("plugins.treesitter")
-require("plugins.lsp")
-require("plugins.completion")
-require("plugins.git")
-require("plugins.ui")
-require("plugins.editing")
+return {
+    { import = "plugins.colorscheme" },
+    { import = "plugins.treesitter" },
+    { import = "plugins.lsp" },
+    { import = "plugins.completion" },
+    { import = "plugins.git" },
+    { import = "plugins.ui" },
+    { import = "plugins.editing" },
+}
