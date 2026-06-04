@@ -47,36 +47,11 @@ let
     fi
   '';
 
-  treesitterWithGrammars = pkgs.vimPlugins.nvim-treesitter.withPlugins (parsers: with parsers; [
-    bash
-    c
-    css
-    diff
-    html
-    java
-    javascript
-    json
-    lua
-    markdown
-    markdown_inline
-    nix
-    php
-    query
-    regex
-    rust
-    tsx
-    twig
-    typescript
-    vim
-    vimdoc
-    vue
-    xml
-    yaml
-  ]);
 in
 
 {
   imports = [
+    ./modules/neovim.nix
   ];
 
   home = {
@@ -136,7 +111,6 @@ in
         ".local/share/gnupg"
         ".local/share/direnv"
         ".local/share/fish"
-        ".local/share/nvim"
         ".local/share/password-store"
         ".local/share/zoxide"
         ".local/state"
@@ -189,61 +163,6 @@ in
     **/.claude/settings.local.json
     /.codex
   '';
-
-  programs.neovim = {
-    enable = true;
-    defaultEditor = true;
-    viAlias = true;
-    vimAlias = true;
-    withNodeJs = true;
-    withPython3 = false;
-    withRuby = false;
-
-    extraPackages = with pkgs; [
-      emmet-language-server
-      fzf
-      intelephense
-      jdt-language-server
-      lua-language-server
-      nixd
-      phpPackages.php-cs-fixer
-      prettier
-      prettierd
-      ripgrep
-      stylua
-      tailwindcss-language-server
-      typescript-language-server
-      vscode-langservers-extracted
-    ];
-
-    plugins = with pkgs.vimPlugins; [
-      aerial-nvim
-      blink-cmp
-      conform-nvim
-      fidget-nvim
-      friendly-snippets
-      fzf-lua
-      gitsigns-nvim
-      indent-blankline-nvim
-      lazygit-nvim
-      leap-nvim
-      lualine-nvim
-      luasnip
-      neoscroll-nvim
-      nvim-lspconfig
-      nvim-surround
-      nvim-treesitter-textobjects
-      overseer-nvim
-      papercolor-theme-slim
-      plenary-nvim
-      treesitterWithGrammars
-      vim-abolish
-      ferret
-      vim-tmux-navigator
-      which-key-nvim
-      yazi-nvim
-    ];
-  };
 
   programs.home-manager.enable = true;
 
@@ -404,7 +323,6 @@ in
       "gammastep/config.ini".source = ./config/gammastep/config.ini;
       "htop/htoprc".source = ./config/htop/htoprc;
       "mako/config".source = ./config/mako/config;
-      "nvim".source = ./nvim;
       "sway/config".source = ./config/sway/config;
       "sway/config.local".source = ./config/sway/config.local;
       "waybar/config".source = ./config/waybar/config;
