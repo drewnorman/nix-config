@@ -385,6 +385,14 @@ in
 
   xdg = {
     enable = true;
+    userDirs = {
+      enable = true;
+      createDirectories = false;
+      setSessionVariables = true;
+      documents = "${config.home.homeDirectory}/documents";
+      download = "${config.home.homeDirectory}/downloads";
+      pictures = "${config.home.homeDirectory}/pictures";
+    };
     configFile = {
       "gammastep/config.ini".source = ./config/gammastep/config.ini;
       "htop/htoprc".source = ./config/htop/htoprc;
