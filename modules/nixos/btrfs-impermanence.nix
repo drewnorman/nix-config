@@ -88,6 +88,7 @@
   environment.persistence."/persist" = {
     hideMounts = true;
     directories = [
+      "/var/cache/tuigreet"
       "/var/lib/bluetooth"
       "/var/lib/containers"
       "/var/lib/fprint"

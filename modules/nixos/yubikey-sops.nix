@@ -30,7 +30,10 @@ in
     };
   };
 
-  security.pam.services.greetd.u2f.enable = hasSecretsFile;
+  security.pam.services.greetd.u2f = {
+    enable = hasSecretsFile;
+    control = "sufficient";
+  };
   security.pam.services.sudo.u2f = {
     enable = hasSecretsFile;
     control = "sufficient";
