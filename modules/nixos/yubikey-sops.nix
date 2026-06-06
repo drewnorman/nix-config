@@ -49,7 +49,7 @@ in
       pam-u2f-keys = {
         owner = "root";
         group = "root";
-        mode = "0400";
+        mode = "0444";
       };
     };
   };
