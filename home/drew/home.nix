@@ -269,6 +269,7 @@ in
       e = "nvim";
     };
     interactiveShellInit = ''
+      set -g fish_greeting
       set -x GPG_TTY (tty)
 
       bind tab accept-autosuggestion or complete
