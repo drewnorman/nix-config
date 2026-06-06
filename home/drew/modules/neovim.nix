@@ -5,10 +5,12 @@
   wrappers.neovim = {
     enable = true;
 
-    settings.config_directory =
-      "/home/drew/code/personal/nix-config/home/drew/nvim";
+    settings.config_directory = "/home/drew/code/personal/nix-config/home/drew/nvim";
 
-    settings.aliases = [ "vi" "vim" ];
+    settings.aliases = [
+      "vi"
+      "vim"
+    ];
 
     runtimePkgs = with pkgs; [
       emmet-language-server
@@ -29,14 +31,14 @@
     ];
 
     info.lsp = {
-      emmet        = true;
+      emmet = true;
       intelephense = true;
-      jdtls        = true;
-      lua          = true;
-      nix          = true;
-      tailwind     = true;
-      typescript   = true;
-      vscode       = true;
+      jdtls = true;
+      lua = true;
+      nix = true;
+      tailwind = true;
+      typescript = true;
+      vscode = true;
     };
   };
 

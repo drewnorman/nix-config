@@ -1,4 +1,9 @@
-{ config, inputs, pkgs, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}:
 
 let
   airpodsConnect = pkgs.writeShellScriptBin "airpods-connect" ''
@@ -339,10 +344,9 @@ in
 
   programs.tmux = {
     enable = true;
-    extraConfig = builtins.replaceStrings
-      [ "/usr/bin/fish" ]
-      [ "${pkgs.fish}/bin/fish" ]
-      (builtins.readFile ./config/tmux/tmux.conf);
+    extraConfig = builtins.replaceStrings [ "/usr/bin/fish" ] [ "${pkgs.fish}/bin/fish" ] (
+      builtins.readFile ./config/tmux/tmux.conf
+    );
   };
 
   programs.zoxide = {
