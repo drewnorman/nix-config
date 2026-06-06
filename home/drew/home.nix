@@ -281,7 +281,7 @@ in
 
   programs.fish = {
     enable = true;
-    shellAliases = pkgs.lib.mkForce {
+    shellAliases = {
       e = "nvim";
     };
     interactiveShellInit = ''
