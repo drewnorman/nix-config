@@ -22,9 +22,20 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, impermanence, sops-nix, ... }:
+  outputs =
+    inputs@{
+      nixpkgs,
+      home-manager,
+      impermanence,
+      sops-nix,
+      ...
+    }:
     let
       system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
       homeManagerConfig = {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
@@ -52,10 +63,24 @@
       };
 
       devShells.${system}.default = import ./shell.nix {
-        pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
-        };
+        inherit pkgs;
+      };
+
+      formatter.${system} = pkgs.writeShellApplication {
+        name = "nixfmt-tree";
+        runtimeInputs = with pkgs; [
+          git
+          nixfmt
+        ];
+        text = ''
+          mapfile -t files < <(git ls-files '*.nix')
+
+          if [ "''${#files[@]}" -eq 0 ]; then
+            exit 0
+          fi
+
+          exec nixfmt "$@" "''${files[@]}"
+        '';
       };
     };
 }
