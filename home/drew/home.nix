@@ -164,6 +164,10 @@ in
     /.codex
   '';
 
+  home.file.".gnupg/scdaemon.conf".text = ''
+    disable-ccid
+  '';
+
   programs.home-manager.enable = true;
 
   programs.alacritty = {

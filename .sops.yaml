@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: secrets/x1c-g9\.yaml$
+    age: age1ucfachl45fkl66fpmp5q6a406j9kwe6fc5fcuq46tphzllpt043q53pzav
+    pgp: "91D52996E8B88A5992F3ED77B40C9C6BE6E1ED96,49CB4395DC81E92F5C202281844352BE54127CB3"
