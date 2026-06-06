@@ -68,7 +68,7 @@
   security = {
     polkit.enable = true;
     rtkit.enable = true;
-    sudo.wheelNeedsPassword = false;
+    sudo.wheelNeedsPassword = true;
   };
 
   users = {

@@ -18,7 +18,7 @@ in
 
   security.pam.u2f = {
     enable = hasSecretsFile;
-    control = "sufficient";
+    control = "required";
     settings = {
       authfile = if hasSecretsFile then config.sops.secrets.pam-u2f-keys.path else null;
       cue = true;
@@ -26,6 +26,10 @@ in
   };
 
   security.pam.services.greetd.u2f.enable = hasSecretsFile;
+  security.pam.services.sudo.u2f = {
+    enable = hasSecretsFile;
+    control = "sufficient";
+  };
   security.pam.services.swaylock.u2f.enable = hasSecretsFile;
 
   programs.gnupg.agent = {
