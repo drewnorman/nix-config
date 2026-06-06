@@ -14,12 +14,41 @@ the BTRFS subvolumes and `/dev/vg/nixos-swap` to be available as low-priority
 disk swap. ZRAM is enabled by the NixOS configuration and is preferred for
 normal memory pressure.
 
-### Mounts
+Create the root, Nix store, persistence, and blank root subvolumes from the
+BTRFS top level before mounting the install target. The `root-blank` snapshot
+must be a sibling of `root`, not nested inside it, because the initrd rollback
+service mounts the BTRFS top level and restores `root` from `root-blank` on
+each boot.
 
 ```sh
 cryptsetup open /dev/disk/by-uuid/208b84fc-d18e-42a6-9ede-489f50421821 crypted
 vgchange -ay vg
 
+mount -o subvol=/ /dev/vg/nixos /mnt
+btrfs subvolume create /mnt/root
+btrfs subvolume create /mnt/nix
+btrfs subvolume create /mnt/persist
+mkdir -p /mnt/root/{boot,nix,persist}
+btrfs subvolume snapshot -r /mnt/root /mnt/root-blank
+umount /mnt
+```
+
+If boot fails with `Missing BTRFS blank snapshot: root-blank`, check whether
+the snapshot was accidentally created inside `root`:
+
+```sh
+cryptsetup open /dev/disk/by-uuid/208b84fc-d18e-42a6-9ede-489f50421821 crypted
+vgchange -ay vg
+
+mount -o subvol=/ /dev/vg/nixos /mnt
+btrfs subvolume show /mnt/root/root-blank
+btrfs subvolume snapshot -r /mnt/root/root-blank /mnt/root-blank
+umount /mnt
+```
+
+### Mounts
+
+```sh
 mount -o subvol=root,compress=zstd,noatime /dev/vg/nixos /mnt
 mkdir -p /mnt/{boot,nix,persist}
 mount -o subvol=nix,compress=zstd,noatime /dev/vg/nixos /mnt/nix

@@ -23,28 +23,34 @@
       set -euo pipefail
 
       mkdir -p /mnt
-      trap 'umount /mnt 2>/dev/null || true' EXIT
+      trap '${pkgs.util-linux}/bin/umount /mnt 2>/dev/null || true' EXIT
 
-      mount -o subvol=/ /dev/vg/nixos /mnt
+      ${pkgs.util-linux}/bin/mount -o subvol=/ /dev/vg/nixos /mnt
 
-      if ! btrfs subvolume show /mnt/root-blank >/dev/null 2>&1; then
+      if ! ${pkgs.btrfs-progs}/bin/btrfs subvolume show /mnt/root-blank >/dev/null 2>&1 \
+        && ${pkgs.btrfs-progs}/bin/btrfs subvolume show /mnt/root/root-blank >/dev/null 2>&1; then
+        echo "Found root-blank nested under root; moving it to the BTRFS top level" >&2
+        ${pkgs.btrfs-progs}/bin/btrfs subvolume snapshot -r /mnt/root/root-blank /mnt/root-blank
+      fi
+
+      if ! ${pkgs.btrfs-progs}/bin/btrfs subvolume show /mnt/root-blank >/dev/null 2>&1; then
         echo "Missing BTRFS blank snapshot: root-blank" >&2
         exit 1
       fi
 
       if [ -e /mnt/root ]; then
-        btrfs subvolume list -o /mnt/root \
-          | cut -f9- -d' ' \
-          | awk '{ path = $0; depth = gsub("/", "/", path); print depth, length($0), $0 }' \
-          | sort -rn -k1,1 -k2,2 \
-          | cut -d' ' -f3- \
+        ${pkgs.btrfs-progs}/bin/btrfs subvolume list -o /mnt/root \
+          | ${pkgs.coreutils}/bin/cut -f9- -d' ' \
+          | ${pkgs.gawk}/bin/awk '{ path = $0; depth = gsub("/", "/", path); print depth, length($0), $0 }' \
+          | ${pkgs.coreutils}/bin/sort -rn -k1,1 -k2,2 \
+          | ${pkgs.coreutils}/bin/cut -d' ' -f3- \
           | while read -r subvolume; do
-            btrfs subvolume delete "/mnt/$subvolume"
+            ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "/mnt/$subvolume"
           done
-        btrfs subvolume delete /mnt/root
+        ${pkgs.btrfs-progs}/bin/btrfs subvolume delete /mnt/root
       fi
 
-      btrfs subvolume snapshot /mnt/root-blank /mnt/root
+      ${pkgs.btrfs-progs}/bin/btrfs subvolume snapshot /mnt/root-blank /mnt/root
     '';
   };
 
