@@ -1,4 +1,4 @@
-allow_images=true
+allow_images=false
 allow_markup=true
 insensitive=true
 hide_scroll=true
