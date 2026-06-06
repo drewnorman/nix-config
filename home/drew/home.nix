@@ -256,26 +256,76 @@ in
 
   programs.fish = {
     enable = true;
-    shellAliases = {
+    shellAliases = pkgs.lib.mkForce {
       e = "nvim";
-      ls = "eza";
-      lsa = "eza -la";
-      q = "exit";
     };
     interactiveShellInit = ''
       set -x GPG_TTY (tty)
+
+      bind tab accept-autosuggestion or complete
 
       if test -f $__fish_config_dir/local.fish
         source $__fish_config_dir/local.fish
       end
 
       if test -z "$TMUX"
-        tmux new-session -A -s main
+        tmux new-session -A -s default
       end
     '';
   };
 
-  programs.starship.enable = true;
+  programs.starship = {
+    enable = true;
+    settings = {
+      format = "$directory$git_branch$git_status\n$character";
+      right_format = "$status$cmd_duration$jobs$direnv$aws$gcloud$kubernetes$docker_context$nix_shell$package$nodejs$python$rust$golang$time";
+
+      character = {
+        success_symbol = "[>](green)";
+        error_symbol = "[>](red)";
+        vimcmd_symbol = "[<](green)";
+        vimcmd_replace_one_symbol = "[>](purple)";
+        vimcmd_replace_symbol = "[>](purple)";
+        vimcmd_visual_symbol = "[>](yellow)";
+      };
+
+      git_branch = {
+        format = "on [$branch(:$remote_branch)]($style) ";
+        style = "purple";
+      };
+
+      git_status = {
+        format = "([$all_status$ahead_behind]($style) )";
+        style = "red";
+        conflicted = "~";
+        ahead = "⇡\${count}";
+        behind = "⇣\${count}";
+        diverged = "⇕⇡\${ahead_count}⇣\${behind_count}";
+        stashed = "*";
+        staged = "+";
+        modified = "!";
+        renamed = ">";
+        deleted = "x";
+        untracked = "?";
+      };
+
+      status = {
+        disabled = false;
+        format = "[$status]($style) ";
+      };
+
+      cmd_duration = {
+        min_time = 3000;
+        format = "took [$duration]($style) ";
+      };
+
+      time = {
+        disabled = false;
+        format = "at [$time]($style) ";
+        time_format = "%T";
+      };
+    };
+  };
 
   programs.tmux = {
     enable = true;
