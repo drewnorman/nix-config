@@ -52,6 +52,13 @@ let
     fi
   '';
 
+  hiddenDesktopEntry = name: ''
+    [Desktop Entry]
+    Type=Application
+    Name=${name}
+    Hidden=true
+  '';
+
 in
 
 {
@@ -416,7 +423,13 @@ in
       "yazi/theme.toml".source = ./config/yazi/theme.toml;
       "yazi/yazi.toml".source = ./config/yazi/yazi.toml;
     };
-    dataFile."wallpapers/white.jpg".source = ./assets/wallpapers/white.jpg;
+    dataFile = {
+      "applications/htop.desktop".text = hiddenDesktopEntry "Htop";
+      "applications/lftp.desktop".text = hiddenDesktopEntry "lftp";
+      "applications/nvim.desktop".text = hiddenDesktopEntry "nvim";
+      "applications/yazi.desktop".text = hiddenDesktopEntry "Yazi";
+      "wallpapers/white.jpg".source = ./assets/wallpapers/white.jpg;
+    };
     mimeApps = {
       enable = true;
       associations.added = {
