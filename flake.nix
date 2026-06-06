@@ -11,13 +11,18 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
+    sops-nix = {
+      url = "git+https://github.com/Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-wrapper-modules = {
-      url = "github:BirdeeHub/nix-wrapper-modules";
+      url = "git+https://github.com/BirdeeHub/nix-wrapper-modules";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, impermanence, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, impermanence, sops-nix, ... }:
     let
       system = "x86_64-linux";
       homeManagerConfig = {
@@ -37,8 +42,10 @@
           modules = [
             ./hosts/x1c-g9/configuration.nix
             ./modules/nixos/btrfs-impermanence.nix
+            ./modules/nixos/yubikey-sops.nix
             impermanence.nixosModules.impermanence
             home-manager.nixosModules.home-manager
+            sops-nix.nixosModules.sops
             homeManagerConfig
           ];
         };

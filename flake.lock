@@ -60,6 +60,26 @@
         "type": "github"
       }
     },
+    "nix-wrapper-modules": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780661205,
+        "narHash": "sha256-3F5DixT3Gk91lBI9E+TGMm0ko5HrRbDiL23di16TJGA=",
+        "ref": "refs/heads/main",
+        "rev": "8dd304c3582ddd339217e1cc5fb53f50acb63c2d",
+        "revCount": 767,
+        "type": "git",
+        "url": "https://github.com/BirdeeHub/nix-wrapper-modules"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/BirdeeHub/nix-wrapper-modules"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1768564909,
@@ -96,7 +116,29 @@
       "inputs": {
         "home-manager": "home-manager",
         "impermanence": "impermanence",
-        "nixpkgs": "nixpkgs_2"
+        "nix-wrapper-modules": "nix-wrapper-modules",
+        "nixpkgs": "nixpkgs_2",
+        "sops-nix": "sops-nix"
+      }
+    },
+    "sops-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780547341,
+        "narHash": "sha256-Gq8KNx5A7hBB3uGJaj6eQfLDIz5YdLu92gqBcvHvoUo=",
+        "ref": "refs/heads/master",
+        "rev": "9ed65852b6257fbeae4355bc24ecfea307ca759a",
+        "revCount": 1216,
+        "type": "git",
+        "url": "https://github.com/Mic92/sops-nix"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/Mic92/sops-nix"
       }
     }
   },
