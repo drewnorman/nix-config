@@ -170,6 +170,15 @@ in
 
   programs.home-manager.enable = true;
 
+  home.pointerCursor = {
+    enable = true;
+    package = pkgs.vanilla-dmz;
+    name = "DMZ-Black";
+    size = 20;
+    gtk.enable = true;
+    x11.enable = true;
+  };
+
   programs.alacritty = {
     enable = true;
     settings = {

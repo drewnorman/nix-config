@@ -12,15 +12,15 @@
         "interval": 1
     },
     "cpu": {
-        "format": ""
+        "format": "󰻠"
     },
     "memory": {
-        "format": ""
+        "format": "󰍛"
     },
     "temperature": {
         "critical-threshold": 80,
         "format": "{icon}",
-        "format-icons": [""],
+        "format-icons": ["󰔏"],
         "tooltip-format": "{temperatureC}°C"
     },
     "battery": {
@@ -29,36 +29,36 @@
             "critical": 15
         },
         "format": "{icon}",
-        "format-charging": "",
-        "format-plugged": "",
-        "format-icons": ["", "", "", "", ""]
+        "format-charging": "󰂄",
+        "format-plugged": "󰚥",
+        "format-icons": ["󰁺", "󰁼", "󰁾", "󰂀", "󰁹"]
     },
     "network": {
         "interval": 30,
-        "format-wifi": "",
+        "format-wifi": "󰤨",
         "tooltip-format-wifi": "{essid} ({signalStrength}%)",
-        "format-ethernet": "",
+        "format-ethernet": "󰈀",
         "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
-        "format-linked": "(No IP) ",
+        "format-linked": "(No IP) 󰈀",
         "tooltip-format-linked": "{ifname} (No IP)",
-        "format-disconnected": "⚠",
+        "format-disconnected": "󰤭",
         "tooltip-format-disconnected": "Disconnected"
     },
     "pulseaudio": {
         "format": "{icon}",
-        "format-bluetooth": "{icon}",
-        "format-bluetooth-muted": "ﱝ {icon}",
-        "format-muted": "ﱝ ",
-        "format-source": "",
-        "format-source-muted": "",
+        "format-bluetooth": "{icon}󰂯",
+        "format-bluetooth-muted": "󰖁 {icon}󰂯",
+        "format-muted": "󰖁 ",
+        "format-source": "󰍬",
+        "format-source-muted": "󰍭",
         "format-icons": {
-            "headphone": "",
-            "hands-free": "",
-            "headset": "",
-            "phone": "",
-            "portable": "",
-            "car": "",
-            "default": ["", "", ""]
+            "headphone": "󰋋",
+            "hands-free": "󰋎",
+            "headset": "󰋎",
+            "phone": "󰏲",
+            "portable": "󰏲",
+            "car": "󰄋",
+            "default": ["󰕿", "󰖀", "󰕾"]
         },
         "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle"
     }

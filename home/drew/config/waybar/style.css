@@ -1,8 +1,7 @@
 * {
     border: none;
     border-radius: 0;
-    /* `otf-font-awesome` is required to be installed for icons */
-    font-family: "Inconsolata Medium", monospace;
+    font-family: "Inconsolata Medium", "Symbols Nerd Font Mono", monospace;
     font-size: 14px;
     min-height: 0;
 }
@@ -57,17 +56,6 @@ window#waybar.chromium {
 #mode {
     background-color: #918175;
     border-bottom: 3px solid #1c1c1c;
-}
-
-#pulseaudio,
-#network,
-#battery {
-    font-size: 24px;
-}
-
-#cpu,
-#memory {
-    font-size: 20px;
 }
 
 #clock,

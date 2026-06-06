@@ -21,6 +21,8 @@ set $term alacritty
 set $menu wofi --show run
 # Font
 font pango: SourceCodePro Medium 12
+# Cursor theme
+seat * xcursor_theme DMZ-Black 20
 # Disable titlebar 
 default_border none
 # Set gaps
