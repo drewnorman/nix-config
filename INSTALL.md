@@ -154,14 +154,14 @@ pamu2fcfg -u drew
 
 ```sh
 sops --encrypt --in-place secrets/x1c-g9.yaml
-sudo nixos-rebuild switch --flake .#x1c-g9
+just switch
 ```
 
 When `.sops.yaml` recipients change, update the encrypted file:
 
 ```sh
 sops updatekeys secrets/x1c-g9.yaml
-sudo nixos-rebuild switch --flake .#x1c-g9
+just switch
 ```
 
 Until `secrets/x1c-g9.yaml` exists, the system keeps using the bootstrap
@@ -169,6 +169,12 @@ password hash at `/persist/secrets/users/drew/password`, and PAM U2F login is
 left disabled to avoid a broken login path.
 
 ### Rebuilding
+
+```sh
+just switch
+```
+
+The direct fallback command is:
 
 ```sh
 sudo nixos-rebuild switch --flake .#x1c-g9

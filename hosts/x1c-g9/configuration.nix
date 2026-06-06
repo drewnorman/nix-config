@@ -114,6 +114,10 @@
   programs = {
     firefox.enable = true;
     git.enable = true;
+    nh = {
+      enable = true;
+      flake = "/home/drew/code/personal/nix-config";
+    };
     ssh.startAgent = true;
     sway = {
       enable = true;
@@ -203,6 +207,7 @@
     httpie
     intel-gpu-tools
     iptables
+    just
     lftp
     m4
     gnumake

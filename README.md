@@ -13,7 +13,13 @@ ThinkPad X1 Carbon Gen 9. Requires [Nix Flakes](https://nixos.wiki/wiki/Flakes).
   - Opt-in system persistence under `/persist`
   - Opt-in Home Manager persistence under `/persist/home/drew`
 
-Install or rebuild with:
+Install or rebuild with the repo shortcut:
+
+```sh
+just switch
+```
+
+The direct fallback command is:
 
 ```sh
 sudo nixos-rebuild switch --flake .#x1c-g9
