@@ -1,6 +1,10 @@
 vim.g.mapleader = ','
 vim.g.maplocalleader = ','
 
+local config_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h")
+vim.opt.rtp:prepend(config_dir)
+package.path = config_dir .. "/lua/?.lua;" .. config_dir .. "/lua/?/init.lua;" .. package.path
+
 require('config.options')
 require('config.autocmds')
 require('config.commands')

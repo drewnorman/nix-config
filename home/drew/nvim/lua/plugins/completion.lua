@@ -3,7 +3,7 @@ return {
     { "rafamadriz/friendly-snippets" },
     {
         "saghen/blink.cmp",
-        dependencies = { "L3MON4D3/LuaSnip", "rafamadriz/friendly-snippets" },
+        dependencies = { "saghen/blink.lib", "L3MON4D3/LuaSnip", "rafamadriz/friendly-snippets" },
         config = function()
             require("luasnip.loaders.from_vscode").lazy_load()
             require("luasnip").filetype_extend("twig", { "html" })

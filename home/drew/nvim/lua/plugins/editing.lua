@@ -1,6 +1,7 @@
 return {
     {
-        "ggandor/leap.nvim",
+        url = "https://codeberg.org/andyg/leap.nvim",
+        name = "leap.nvim",
         config = function()
             require("leap").opts.vim_opts["go.ignorecase"] = false
             local map = vim.keymap.set
