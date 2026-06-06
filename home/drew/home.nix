@@ -100,15 +100,17 @@ in
         ".cargo"
         ".claude"
         ".codex"
+        ".config/chromium"
         ".config/Bitwarden CLI"
         ".config/calibre"
         ".config/configstore"
         ".config/filezilla"
         ".config/gcloud"
         ".config/gh"
-        ".config/google-chrome"
         ".config/lazygit"
         ".config/pulse"
+        ".cache/chromium"
+        ".cache/mozilla"
         ".gnupg"
         ".local/share/Bitwarden CLI"
         ".local/share/calibre"
@@ -174,6 +176,8 @@ in
   '';
 
   programs.home-manager.enable = true;
+
+  programs.chromium.enable = true;
 
   home.pointerCursor = {
     enable = true;

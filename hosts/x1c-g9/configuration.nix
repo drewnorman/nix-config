@@ -201,7 +201,6 @@
     fuse-overlayfs
     gcc
     git-lfs
-    google-chrome
     google-cloud-sdk
     graphicsmagick
     htop
