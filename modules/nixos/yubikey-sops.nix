@@ -1,8 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  secretsDir = ../../secrets;
-  secretsFile = "${toString secretsDir}/x1c-g9.yaml";
+  secretsFile = ../../secrets/x1c-g9.yaml;
   hasSecretsFile = builtins.pathExists secretsFile;
   persistedHostSshKey = "/persist/etc/ssh/ssh_host_ed25519_key";
   sopsAgeKeyFile = "/persist/etc/sops/age/keys.txt";
@@ -37,7 +36,7 @@ in
   services.pcscd.enable = true;
 
   sops = lib.mkIf hasSecretsFile {
-    defaultSopsFile = builtins.toPath secretsFile;
+    defaultSopsFile = secretsFile;
     defaultSopsFormat = "yaml";
 
     age.keyFile = sopsAgeKeyFile;
