@@ -114,6 +114,15 @@ Brightness: $brightness"
     ${pkgs.procps}/bin/pkill -RTMIN+1 waybar >/dev/null 2>&1 || true
   '';
 
+  ensureLocalProxyNetwork = pkgs.writeShellScript "ensure-local-proxy-network" ''
+    ${pkgs.podman}/bin/podman network exists local-proxy || \
+      ${pkgs.podman}/bin/podman network create local-proxy
+  '';
+
+  removeLocalProxyContainer = pkgs.writeShellScript "remove-local-proxy-container" ''
+    ${pkgs.podman}/bin/podman rm -f traefik-local-proxy >/dev/null 2>&1 || true
+  '';
+
   hiddenDesktopEntry = name: ''
     [Desktop Entry]
     Type=Application
@@ -453,6 +462,54 @@ in
     enable = true;
     enableFishIntegration = true;
     nix-direnv.enable = true;
+  };
+
+  systemd.user.sockets.podman = {
+    Unit.Description = "Podman API socket";
+    Socket = {
+      ListenStream = "%t/podman/podman.sock";
+      SocketMode = "0660";
+    };
+    Install.WantedBy = [ "sockets.target" ];
+  };
+
+  systemd.user.services.podman = {
+    Unit.Description = "Podman API service";
+    Service = {
+      ExecStart = "${pkgs.podman}/bin/podman system service --time=0 unix://%t/podman/podman.sock";
+      Type = "exec";
+    };
+  };
+
+  systemd.user.services.traefik-local-proxy = {
+    Unit = {
+      Description = "Rootless Traefik local development proxy";
+      After = [ "podman.socket" ];
+      Requires = [ "podman.socket" ];
+    };
+    Service = {
+      ExecStartPre = [
+        "${ensureLocalProxyNetwork}"
+        "${removeLocalProxyContainer}"
+      ];
+      ExecStart = ''
+        ${pkgs.podman}/bin/podman run --rm --name traefik-local-proxy \
+          --network local-proxy \
+          --publish 127.0.0.1:80:80 \
+          --volume %t/podman/podman.sock:/var/run/docker.sock \
+          docker.io/library/traefik:v3 \
+          --entrypoints.web.address=:80 \
+          --providers.docker=true \
+          --providers.docker.endpoint=unix:///var/run/docker.sock \
+          --providers.docker.exposedbydefault=false \
+          --providers.docker.network=local-proxy \
+          --log.level=INFO
+      '';
+      ExecStopPost = "${removeLocalProxyContainer}";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "default.target" ];
   };
 
   programs.lazygit.enable = true;
