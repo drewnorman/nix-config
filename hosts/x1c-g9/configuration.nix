@@ -46,6 +46,15 @@
     tailscale.enable = true;
     tlp.enable = true;
     udisks2.enable = true;
+    xserver.videoDrivers = [
+      "displaylink"
+      "modesetting"
+    ];
+
+    logind.settings.Login = {
+      HandleLidSwitchDocked = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+    };
 
     pipewire = {
       enable = true;
@@ -120,6 +129,7 @@
     ssh.startAgent = true;
     sway = {
       enable = true;
+      extraOptions = [ "--unsupported-gpu" ];
       wrapperFeatures.gtk = true;
       extraPackages = with pkgs; [
         alacritty
@@ -204,6 +214,7 @@
     graphicsmagick
     htop
     httpie
+    displaylink
     intel-gpu-tools
     iptables
     just
@@ -248,6 +259,8 @@
   services.udev.packages = with pkgs; [
     zsa-udev-rules
   ];
+
+  systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
   system.stateVersion = "25.11";
 }
