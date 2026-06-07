@@ -339,7 +339,6 @@ in
       };
       credential.helper = "cache";
       include.path = "~/.gitconfig.local";
-      includeIf."gitdir:~/code/foxfuel/".path = "~/code/foxfuel/.gitconfig";
       init.defaultBranch = "master";
       merge.tool = "vimdiff";
       mergetool."vimdiff".path = "nvim";
@@ -350,7 +349,36 @@ in
         useConfigOnly = true;
       };
     };
+    includes = [
+      {
+        condition = "gitdir:~/code/foxfuel/";
+        contents.user = {
+          name = "Drew Norman";
+          email = "drewnorman@foxfuelcreative.com";
+        };
+      }
+    ];
   };
+
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
+    includes = [ "~/.ssh/config.local" ];
+    matchBlocks = {
+      "github.com" = {
+        user = "git";
+        identityFile = "~/.ssh/git@github.com";
+        identitiesOnly = true;
+      };
+
+      "bitbucket.org" = {
+        user = "git";
+        identityFile = "~/.ssh/git@bitbucket.org";
+        identitiesOnly = true;
+      };
+    };
+  };
+  home.file.".ssh/config".force = true;
 
   programs.fish = {
     enable = true;
