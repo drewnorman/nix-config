@@ -39,7 +39,6 @@
       };
     };
 
-    blueman.enable = true;
     fstrim.enable = true;
     fwupd.enable = true;
     libinput.enable = true;
