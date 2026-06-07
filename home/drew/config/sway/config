@@ -112,7 +112,7 @@ input * accel_profile flat
     bindsym $mod+Shift+p+r exec grim -g "$(slurp)" ~/pictures/$(date +%Y-%m-%d_%H-%m-%s).png
 
     # Toggle caps/escape keyswap
-    bindsym $mod+Shift+k+s exec toggle-caps-escape
+    bindsym $mod+Shift+k+s exec /etc/profiles/per-user/drew/bin/toggle-caps-escape
 
     # AirPods Pro 3 Bluetooth
     bindsym $mod+Shift+b+c exec airpods-connect
