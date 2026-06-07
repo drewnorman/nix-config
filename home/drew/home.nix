@@ -52,6 +52,68 @@ let
     fi
   '';
 
+  waybarGammastepStatus = pkgs.writeShellScriptBin "waybar-gammastep-status" ''
+    status="$(${pkgs.gammastep}/bin/gammastep -p -c "$HOME/.config/gammastep/config.ini" 2>&1 || true)"
+
+    if systemctl --user is-active --quiet gammastep.service; then
+      running="Running"
+      class="unknown"
+    else
+      running="Stopped"
+      class="stopped"
+    fi
+
+    period="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Period:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+    temperature="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Color temperature:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+    brightness="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Brightness:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+
+    [ -n "$period" ] || period="Unknown"
+    [ -n "$temperature" ] || temperature="Unknown"
+    [ -n "$brightness" ] || brightness="Unknown"
+
+    if [ "$running" = "Running" ]; then
+      case "$period" in
+        Daytime) class="daytime" ;;
+        Night) class="night" ;;
+        Transition) class="transition" ;;
+        *) class="unknown" ;;
+      esac
+    fi
+
+    case "$class" in
+      daytime) icon="󰖙" ;;
+      night) icon="󰖔" ;;
+      transition) icon="󰖚" ;;
+      *) icon="󰔎" ;;
+    esac
+
+    tooltip="Gammastep: $running
+Period: $period
+Temperature: $temperature
+Brightness: $brightness"
+
+      ${pkgs.jq}/bin/jq -cn \
+        --arg text "$icon" \
+        --arg tooltip "$tooltip" \
+        --arg class "$class" \
+        '{text: $text, tooltip: $tooltip, class: $class}'
+  '';
+
+  waybarGammastepToggle = pkgs.writeShellScriptBin "waybar-gammastep-toggle" ''
+    if systemctl --user is-active --quiet gammastep.service; then
+      ${pkgs.libnotify}/bin/notify-send -t 5000 "Gammastep disabling..."
+      systemctl --user stop gammastep.service
+      ${pkgs.libnotify}/bin/notify-send -t 3000 "Gammastep disabled."
+    else
+      ${pkgs.libnotify}/bin/notify-send -t 5000 "Gammastep enabling..."
+      systemctl --user start gammastep.service
+      ${pkgs.libnotify}/bin/notify-send -t 3000 "Gammastep enabled."
+    fi
+
+    ${pkgs.coreutils}/bin/sleep 0.5
+    ${pkgs.procps}/bin/pkill -RTMIN+1 waybar >/dev/null 2>&1 || true
+  '';
+
   hiddenDesktopEntry = name: ''
     [Desktop Entry]
     Type=Application
@@ -95,6 +157,8 @@ in
       phpPackages.composer
       taskwarrior3
       toggleCapsEscape
+      waybarGammastepStatus
+      waybarGammastepToggle
       yarn
       yazi
       zoxide
@@ -393,10 +457,167 @@ in
 
   programs.lazygit.enable = true;
 
+  programs.waybar = {
+    enable = true;
+    style = builtins.readFile ./config/waybar/style.css;
+    settings = {
+      mainBar = {
+        height = 30;
+        modules-left = [
+          "sway/workspaces"
+          "sway/window"
+        ];
+        modules-center = [ "clock" ];
+        modules-right = [
+          "pulseaudio"
+          "custom/gammastep"
+          "backlight"
+          "network"
+          "cpu"
+          "memory"
+          "temperature"
+          "battery"
+        ];
+
+        "sway/window".max-length = 70;
+
+        clock = {
+          tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>";
+          format = "{:%a %b %d %H:%M:%S}";
+          interval = 1;
+        };
+
+        cpu = {
+          format = "󰻠";
+          tooltip-format = "{usage}% CPU";
+        };
+
+        memory = {
+          format = "󰍛";
+          tooltip-format = "{percentage}% memory";
+        };
+
+        temperature = {
+          critical-threshold = 80;
+          format = "{icon}";
+          format-icons = [
+            "󰔏"
+            "󱃂"
+            "󰈸"
+          ];
+          tooltip-format = "{temperatureC}°C";
+        };
+
+        battery = {
+          bat = "BAT0";
+          adapter = "AC";
+          bat-compatibility = true;
+          interval = 30;
+          states = {
+            warning = 30;
+            critical = 15;
+          };
+          format = "{icon}";
+          format-charging = "󰂄";
+          format-plugged = "󰚥";
+          format-icons = [
+            "󰁺"
+            "󰁼"
+            "󰁾"
+            "󰂀"
+            "󰁹"
+          ];
+          tooltip-format = "{capacity}%";
+          tooltip-format-discharging = "{capacity}%\n{time} remaining";
+          tooltip-format-charging = "{capacity}%\n{time} to full";
+        };
+
+        backlight = {
+          device = "intel_backlight";
+          format = "{icon}";
+          format-icons = [
+            "󰃞"
+            "󰃟"
+            "󰃠"
+          ];
+          scroll-step = 5;
+          tooltip-format = "{percent}% brightness";
+        };
+
+        "custom/gammastep" = {
+          exec = "${waybarGammastepStatus}/bin/waybar-gammastep-status";
+          return-type = "json";
+          format = "{}";
+          interval = 10;
+          on-click = "${waybarGammastepToggle}/bin/waybar-gammastep-toggle";
+          signal = 1;
+        };
+
+        network = {
+          interval = 30;
+          format-wifi = "󰤨";
+          tooltip-format-wifi = "{essid} ({signalStrength}%)";
+          format-ethernet = "󰈀";
+          tooltip-format-ethernet = "{ifname}: {ipaddr}/{cidr}";
+          format-linked = "(No IP) 󰈀";
+          tooltip-format-linked = "{ifname} (No IP)";
+          format-disconnected = "󰤭";
+          tooltip-format-disconnected = "Disconnected";
+        };
+
+        pulseaudio = {
+          format = "{icon}";
+          format-bluetooth = "{icon}󰂯";
+          format-bluetooth-muted = "󰖁 {icon}󰂯";
+          format-muted = "󰖁 ";
+          format-source = "󰍬";
+          format-source-muted = "󰍭";
+          format-icons = {
+            headphone = "󰋋";
+            hands-free = "󰋎";
+            headset = "󰋎";
+            phone = "󰏲";
+            portable = "󰏲";
+            car = "󰄋";
+            default = [
+              "󰕿"
+              "󰖀"
+              "󰕾"
+            ];
+          };
+          tooltip-format = "{desc}: {volume}%";
+          tooltip-format-muted = "{desc}: muted";
+          on-click = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+          on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle";
+        };
+      };
+    };
+  };
+
   programs.yazi = {
     enable = true;
     enableFishIntegration = true;
     shellWrapperName = "yy";
+  };
+
+  services.gammastep = {
+    enable = true;
+    provider = "manual";
+    latitude = "40.1";
+    longitude = "-108.3";
+    temperature = {
+      day = 5200;
+      night = 4400;
+    };
+    settings = {
+      general = {
+        brightness-day = 1.0;
+        brightness-night = 0.8;
+        gamma = 0.9;
+        fade = 1;
+        adjustment-method = "wayland";
+      };
+    };
   };
 
   xdg = {
@@ -410,13 +631,10 @@ in
       pictures = "${config.home.homeDirectory}/pictures";
     };
     configFile = {
-      "gammastep/config.ini".source = ./config/gammastep/config.ini;
       "htop/htoprc".source = ./config/htop/htoprc;
       "mako/config".source = ./config/mako/config;
       "sway/config".source = ./config/sway/config;
       "sway/config.local".source = ./config/sway/config.local;
-      "waybar/config".source = ./config/waybar/config;
-      "waybar/style.css".source = ./config/waybar/style.css;
       "wofi/config".source = ./config/wofi/config;
       "wofi/style.css".source = ./config/wofi/style.css;
       "yazi/keymap.toml".source = ./config/yazi/keymap.toml;
