@@ -44,6 +44,7 @@
     libinput.enable = true;
     resolved.enable = true;
     tailscale.enable = true;
+    thermald.enable = true;
     tlp.enable = true;
     udisks2.enable = true;
 
