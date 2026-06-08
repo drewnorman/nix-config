@@ -38,7 +38,10 @@ in
     enable = hasSecretsFile;
     control = "sufficient";
   };
-  security.pam.services.swaylock.u2f.enable = hasSecretsFile;
+  security.pam.services.swaylock.u2f = {
+    enable = hasSecretsFile;
+    control = "sufficient";
+  };
 
   programs.gnupg.agent = {
     enable = true;
