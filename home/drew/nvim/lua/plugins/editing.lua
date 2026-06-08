@@ -31,15 +31,17 @@ return {
     },
     {
         "mikavilpas/yazi.nvim",
+        event = "VeryLazy",
+        cmd = "Yazi",
         dependencies = { "nvim-lua/plenary.nvim" },
-        config = function()
-            require("yazi").setup({
-                open_for_directories = true,
-                floating_window_scaling_factor = 0.9,
-                yazi_floating_window_border = "single",
-            })
-            vim.keymap.set("n", "<leader>fb", "<cmd>Yazi<cr>", { silent = true, desc = "File browser" })
-        end,
+        keys = {
+            { "<leader>fb", "<cmd>Yazi<cr>", mode = { "n", "v" }, desc = "File browser" },
+        },
+        opts = {
+            open_for_directories = true,
+            floating_window_scaling_factor = 0.9,
+            yazi_floating_window_border = "single",
+        },
     },
     {
         "ibhagwan/fzf-lua",

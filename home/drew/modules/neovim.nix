@@ -28,6 +28,7 @@
       tailwindcss-language-server
       typescript-language-server
       vscode-langservers-extracted
+      yazi
     ];
 
     info.lsp = {
