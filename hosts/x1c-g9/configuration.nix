@@ -130,6 +130,13 @@
       enable = true;
       flake = "/home/drew/code/personal/nix-config";
     };
+    nix-ld = {
+      enable = true;
+      libraries = with pkgs; [
+        glibc
+        stdenv.cc.cc
+      ];
+    };
     ssh.startAgent = true;
     sway = {
       enable = true;
