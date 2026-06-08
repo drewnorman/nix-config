@@ -123,6 +123,13 @@
   };
 
   programs = {
+    chromium = {
+      enable = true;
+      extraOpts = {
+        ClearBrowsingDataOnExitList = [ ];
+        DefaultCookiesSetting = 1;
+      };
+    };
     firefox.enable = true;
     git.enable = true;
     nh = {

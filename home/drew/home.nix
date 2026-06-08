@@ -266,6 +266,14 @@ in
 
   programs.chromium.enable = true;
 
+  home.file.".mozilla/firefox/o9eR8D7X.Profile 1/user.js".text = ''
+    // Preserve site sessions, including Slack, across Firefox restarts.
+    user_pref("privacy.clearOnShutdown.cookies", false);
+    user_pref("privacy.clearOnShutdown.offlineApps", false);
+    user_pref("privacy.clearOnShutdown_v2.cookiesAndStorage", false);
+    user_pref("privacy.sanitize.pending", "[]");
+  '';
+
   home.pointerCursor = {
     enable = true;
     package = pkgs.vanilla-dmz;
