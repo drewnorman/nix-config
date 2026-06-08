@@ -149,11 +149,6 @@ label:focus {
 
 /*#idle_inhibitor {}*/
 
-#idle_inhibitor.activated {
-    background-color: #1c1c1c;
-    color: #ffffff;
-}
-
 /*#mpd {}*/
 
 #mpd.disconnected {

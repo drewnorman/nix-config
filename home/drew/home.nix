@@ -88,10 +88,10 @@ let
     fi
 
     case "$class" in
-      daytime) icon="󰖙" ;;
-      night) icon="󰖔" ;;
-      transition) icon="󰖚" ;;
-      *) icon="󰔎" ;;
+      daytime) icon="󱩎" ;;
+      night) icon="󱩍" ;;
+      transition) icon="󱩏" ;;
+      *) icon="󱩐" ;;
     esac
 
     tooltip="Gammastep: $running
@@ -578,6 +578,7 @@ in
         modules-center = [ "clock" ];
         modules-right = [
           "pulseaudio"
+          "idle_inhibitor"
           "custom/gammastep"
           "backlight"
           "network"
@@ -650,6 +651,16 @@ in
           ];
           scroll-step = 5;
           tooltip-format = "{percent}% brightness";
+        };
+
+        idle_inhibitor = {
+          format = "{icon}";
+          format-icons = {
+            activated = "󰅶";
+            deactivated = "󰾪";
+          };
+          tooltip-format-activated = "Idle inhibitor active";
+          tooltip-format-deactivated = "Idle inhibitor inactive";
         };
 
         "custom/gammastep" = {
