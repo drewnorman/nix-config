@@ -410,6 +410,14 @@ in
         source $__fish_config_dir/local.fish
       end
 
+      if status --is-login; and test (tty) = /dev/tty1; and test -z "$WAYLAND_DISPLAY"; and test -z "$DISPLAY"
+        set -l systemd_jobs (${pkgs.systemd}/bin/systemctl list-jobs --no-legend 2>/dev/null)
+        if not string match -qr '(^|[[:space:]])(shutdown|poweroff|reboot|halt|kexec)\.target[[:space:]]+start([[:space:]]|$)' -- $systemd_jobs
+          ${pkgs.coreutils}/bin/sleep 5
+          exec ${pkgs.systemd}/bin/systemd-cat -t sway sway
+        end
+      end
+
       if test -z "$TMUX"
         tmux new-session -A -s default
       end
