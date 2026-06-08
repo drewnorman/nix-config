@@ -46,10 +46,6 @@
     tailscale.enable = true;
     tlp.enable = true;
     udisks2.enable = true;
-    xserver.videoDrivers = [
-      "displaylink"
-      "modesetting"
-    ];
 
     logind.settings.Login = {
       HandleLidSwitchDocked = "ignore";
@@ -224,7 +220,6 @@
     graphicsmagick
     htop
     httpie
-    displaylink
     intel-gpu-tools
     iptables
     just
@@ -269,8 +264,6 @@
   services.udev.packages = with pkgs; [
     zsa-udev-rules
   ];
-
-  systemd.services.dlm.wantedBy = [ "multi-user.target" ];
 
   system.stateVersion = "25.11";
 }

@@ -3,22 +3,18 @@
 # You can get the names of your outputs by running:
 #   swaymsg -t get_outputs
 
-# Bind workspaces to monitors.
-workspace 1 output DVI-I-2
-workspace 2 output HDMI-A-1
-workspace 3 output DVI-I-1
-workspace 4 output DVI-I-2
-workspace 5 output HDMI-A-1
-workspace 6 output DVI-I-1
-workspace 7 output DVI-I-2
-workspace 8 output HDMI-A-1
-workspace 9 output DVI-I-1
-workspace 10 output eDP-1
-
-output DVI-I-2 resolution 1920x1080 position 0,0
+output eDP-1 resolution 1920x1200 position 0,0
 output HDMI-A-1 resolution 1920x1080 position 1920,0
-output DVI-I-1 resolution 1920x1080 position 3840,0
-output eDP-1 resolution 1920x1200 position 1920,1080
+output DP-2 resolution 1920x1080 position 3840,0
 
-# Workspace output rules do not move already-existing workspaces on reload.
-exec_always swaymsg "workspace 10; move workspace to output eDP-1; workspace 1; move workspace to output DVI-I-2"
+# Bind workspaces to monitors.
+workspace 1 output eDP-1
+workspace 2 output HDMI-A-1
+workspace 3 output DP-2
+workspace 4 output eDP-1
+workspace 5 output HDMI-A-1
+workspace 6 output DP-2
+workspace 7 output eDP-1
+workspace 8 output HDMI-A-1
+workspace 9 output DP-2
+workspace 0 output eDP-1
