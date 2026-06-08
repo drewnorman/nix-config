@@ -94,7 +94,6 @@
       "/var/lib/fprint"
       "/var/lib/iwd"
       "/var/lib/nixos"
-      "/var/lib/systemd/coredump"
       "/var/lib/tailscale"
       "/var/log"
     ];

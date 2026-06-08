@@ -26,18 +26,12 @@
     wireless.iwd.enable = true;
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 22 ];
+      allowedTCPPorts = [ ];
     };
   };
 
   services = {
-    openssh = {
-      enable = true;
-      settings = {
-        PasswordAuthentication = false;
-        PermitRootLogin = "prohibit-password";
-      };
-    };
+    openssh.enable = false;
 
     fstrim.enable = true;
     fwupd.enable = true;
@@ -88,9 +82,6 @@
         "wheel"
       ];
       hashedPasswordFile = "/persist/secrets/users/drew/password";
-      openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIH+qwzVnHyU19AY9TKxZD2iCU9/DPSbGq1HIPByr8Hc drew@x1c-g9"
-      ];
       shell = pkgs.fish;
     };
   };
@@ -171,6 +162,11 @@
       "wlr"
       "gtk"
     ];
+  };
+
+  systemd.coredump.settings.Coredump = {
+    Storage = "none";
+    ProcessSizeMax = 0;
   };
 
   fonts.packages = with pkgs; [
