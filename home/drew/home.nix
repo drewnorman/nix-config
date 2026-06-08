@@ -8,9 +8,16 @@
 let
   airpodsConnect = pkgs.writeShellScriptBin "airpods-connect" ''
     ${pkgs.libnotify}/bin/notify-send -t 3000 "Connecting AirPods Pro 3..."
-    ${pkgs.bluez}/bin/bluetoothctl power on && ${pkgs.bluez}/bin/bluetoothctl connect 30:0E:43:42:AF:53 && \
-      ${pkgs.libnotify}/bin/notify-send -t 3000 "AirPods Pro 3 connected." || \
+    if ${pkgs.bluez}/bin/bluetoothctl power on && ${pkgs.bluez}/bin/bluetoothctl connect 30:0E:43:42:AF:53; then
+      sleep 1
+      sink="$(${pkgs.pulseaudio}/bin/pactl list short sinks | ${pkgs.gawk}/bin/awk '/bluez_output\.30_0E_43_42_AF_53/ { print $2; exit }')"
+      if [ -n "$sink" ]; then
+        ${pkgs.pulseaudio}/bin/pactl set-default-sink "$sink" || true
+      fi
+      ${pkgs.libnotify}/bin/notify-send -t 3000 "AirPods Pro 3 connected."
+    else
       ${pkgs.libnotify}/bin/notify-send -t 3000 "AirPods Pro 3 failed to connect."
+    fi
   '';
 
   airpodsDisconnect = pkgs.writeShellScriptBin "airpods-disconnect" ''
