@@ -40,6 +40,7 @@ output * bg $HOME/.local/share/wallpapers/white.jpg fill
 #
 # You can get the names of your outputs by running: swaymsg -t get_outputs.
 # Machine-specific outputs and workspace bindings live in config.local.
+include $HOME/.config/sway/config.local
 
 ### Idle configuration
 #
@@ -229,5 +230,4 @@ bar {
     swaybar_command waybar
 }
 
-include $HOME/.config/sway/config.local
 include /etc/sway/config.d/*
