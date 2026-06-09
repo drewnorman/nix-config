@@ -2,19 +2,35 @@ return {
     {
         url = "https://codeberg.org/andyg/leap.nvim",
         name = "leap.nvim",
+        keys = {
+            { "<leader>jj", "<Plug>(leap-forward)",       mode = { "n", "x", "o" }, remap = true, desc = "Leap forward" },
+            { "<leader>jl", "<Plug>(leap-forward-till)",  mode = { "n", "x", "o" }, remap = true, desc = "Leap forward till" },
+            { "<leader>jk", "<Plug>(leap-backward)",      mode = { "n", "x", "o" }, remap = true, desc = "Leap backward" },
+            { "<leader>jh", "<Plug>(leap-backward-till)", mode = { "n", "x", "o" }, remap = true, desc = "Leap backward till" },
+            { "<leader>jw", "<Plug>(leap-cross-window)",  mode = { "n", "x", "o" }, remap = true, desc = "Leap window" },
+        },
         config = function()
             require("leap").opts.vim_opts["go.ignorecase"] = false
-            local map = vim.keymap.set
-            local opts = { silent = true }
-            map({ "n", "x", "o" }, "<leader>jj", "<Plug>(leap-forward)",       { remap = true, desc = "Leap forward" })
-            map({ "n", "x", "o" }, "<leader>jl", "<Plug>(leap-forward-till)",  { remap = true, desc = "Leap forward till" })
-            map({ "n", "x", "o" }, "<leader>jk", "<Plug>(leap-backward)",      { remap = true, desc = "Leap backward" })
-            map({ "n", "x", "o" }, "<leader>jh", "<Plug>(leap-backward-till)", { remap = true, desc = "Leap backward till" })
-            map({ "n", "x", "o" }, "<leader>jw", "<Plug>(leap-cross-window)",  { remap = true, desc = "Leap window" })
         end,
     },
     {
         "stevearc/overseer.nvim",
+        lazy = true,
+        cmd = {
+            "OverseerBuild",
+            "OverseerClearCache",
+            "OverseerClose",
+            "OverseerDeleteBundle",
+            "OverseerInfo",
+            "OverseerLoadBundle",
+            "OverseerOpen",
+            "OverseerQuickAction",
+            "OverseerRun",
+            "OverseerRunCmd",
+            "OverseerSaveBundle",
+            "OverseerTaskAction",
+            "OverseerToggle",
+        },
         config = function()
             require("overseer").setup({
                 task_list = {
@@ -45,6 +61,14 @@ return {
     },
     {
         "ibhagwan/fzf-lua",
+        keys = {
+            { "<leader>ff", function() require("fzf-lua").files() end,                  mode = "n", desc = "Find files" },
+            { "<leader>fi", function() require("fzf-lua").live_grep() end,              mode = "n", desc = "Grep files" },
+            { "<leader>fs", function() require("fzf-lua").lsp_document_symbols() end,   mode = "n", desc = "Document symbols" },
+            { "<leader>fS", function() require("fzf-lua").lsp_workspace_symbols() end,  mode = "n", desc = "Workspace symbols" },
+            { "<leader>fd", function() require("fzf-lua").diagnostics_document() end,   mode = "n", desc = "Document diagnostics" },
+            { "<leader>fD", function() require("fzf-lua").diagnostics_workspace() end,  mode = "n", desc = "Workspace diagnostics" },
+        },
         config = function()
             local actions = require("fzf-lua.actions")
             require("fzf-lua").setup({
@@ -67,14 +91,6 @@ return {
                     },
                 },
             })
-            local map = vim.keymap.set
-            local opts = { silent = true }
-            map("n", "<leader>ff", function() require("fzf-lua").files() end,                  vim.tbl_extend("force", opts, { desc = "Find files" }))
-            map("n", "<leader>fi", function() require("fzf-lua").live_grep() end,              vim.tbl_extend("force", opts, { desc = "Grep files" }))
-            map("n", "<leader>fs", function() require("fzf-lua").lsp_document_symbols() end,  vim.tbl_extend("force", opts, { desc = "Document symbols" }))
-            map("n", "<leader>fS", function() require("fzf-lua").lsp_workspace_symbols() end, vim.tbl_extend("force", opts, { desc = "Workspace symbols" }))
-            map("n", "<leader>fd", function() require("fzf-lua").diagnostics_document() end,  vim.tbl_extend("force", opts, { desc = "Document diagnostics" }))
-            map("n", "<leader>fD", function() require("fzf-lua").diagnostics_workspace() end, vim.tbl_extend("force", opts, { desc = "Workspace diagnostics" }))
         end,
     },
     {
@@ -89,12 +105,23 @@ return {
     },
     {
         "kylechui/nvim-surround",
+        event = "VeryLazy",
         config = function()
             require("nvim-surround").setup({})
         end,
     },
     {
         "stevearc/conform.nvim",
+        keys = {
+            {
+                "<leader>cf",
+                function()
+                    require("conform").format({ async = true, lsp_fallback = true })
+                end,
+                mode = { "n", "v" },
+                desc = "Format buffer",
+            },
+        },
         config = function()
             require("conform").setup({
                 formatters_by_ft = {
@@ -109,9 +136,6 @@ return {
                     rust       = { "rustfmt" },
                 },
             })
-            vim.keymap.set({ "n", "v" }, "<leader>cf", function()
-                require("conform").format({ async = true, lsp_fallback = true })
-            end, { silent = true, desc = "Format buffer" })
         end,
     },
     { "tpope/vim-abolish" },

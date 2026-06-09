@@ -21,5 +21,21 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({ import = "plugins" }, {
-  lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json",
+  lockfile = config_dir .. "/lazy-lock.json",
+  change_detection = {
+    notify = false,
+  },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip",
+        "matchparen",
+        "netrwPlugin",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+      },
+    },
+  },
 })

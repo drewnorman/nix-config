@@ -1,6 +1,7 @@
 return {
     {
         "lewis6991/gitsigns.nvim",
+        event = { "BufReadPre", "BufNewFile" },
         config = function()
             require("gitsigns").setup({
                 current_line_blame_opts = { delay = 500 },
@@ -28,9 +29,10 @@ return {
     },
     {
         "kdheepak/lazygit.nvim",
+        cmd = "LazyGit",
         dependencies = { "nvim-lua/plenary.nvim" },
-        config = function()
-            vim.keymap.set("n", "<leader>lg", "<cmd>LazyGit<cr>", { silent = true, desc = "LazyGit" })
-        end,
+        keys = {
+            { "<leader>lg", "<cmd>LazyGit<cr>", mode = "n", desc = "LazyGit" },
+        },
     },
 }

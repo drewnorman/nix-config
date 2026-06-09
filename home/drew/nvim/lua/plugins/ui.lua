@@ -1,6 +1,7 @@
 return {
     {
         "folke/which-key.nvim",
+        event = "VeryLazy",
         config = function()
             require("which-key").setup({
                 preset = "helix",
@@ -25,6 +26,7 @@ return {
     },
     {
         "nvim-lualine/lualine.nvim",
+        event = "VeryLazy",
         config = function()
             require("lualine").setup({
                 options = {
@@ -45,6 +47,7 @@ return {
     },
     {
         "lukas-reineke/indent-blankline.nvim",
+        event = "VeryLazy",
         config = function()
             local highlight = {
                 "RainbowRed", "RainbowYellow", "RainbowBlue",
@@ -81,13 +84,16 @@ return {
     },
     {
         "stevearc/aerial.nvim",
+        cmd = "AerialToggle",
+        keys = {
+            { "<leader>ta", "<cmd>AerialToggle<cr>", mode = "n", desc = "Toggle outline" },
+        },
         config = function()
             require("aerial").setup({
                 backends = { "lsp", "treesitter", "markdown", "man" },
                 layout = { min_width = 28 },
                 show_guides = true,
             })
-            vim.keymap.set("n", "<leader>ta", "<cmd>AerialToggle<cr>", { silent = true, desc = "Toggle outline" })
         end,
     },
 }
