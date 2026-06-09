@@ -3,12 +3,12 @@
 }
 
 #entry:selected {
-  background-color: #1c1c1c;
+  background-color: rgba(28, 28, 28, 0.88);
   color: #ffffff;
 }
 
 #input {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.84);
   color: #1c1c1c;
   border: none;
   border-radius: 0px;
@@ -19,7 +19,7 @@
 }
 
 window {
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.84);
   color: #1c1c1c;
-  border-radius: 5px;
+  border-radius: 0px;
 }

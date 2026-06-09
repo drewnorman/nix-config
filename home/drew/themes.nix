@@ -17,6 +17,8 @@ let
       };
       alacrittyOpacity = 0.35;
       background = "#ffffff";
+      wofiBackground = "rgba(255, 255, 255, 0.84)";
+      wofiSelectionBackground = "rgba(28, 28, 28, 0.88)";
       foreground = "#1c1c1c";
       cursorText = "#ffffff";
       selectionBackground = "#1c1c1c";
@@ -64,6 +66,8 @@ let
       };
       alacrittyOpacity = 0.35;
       background = "#1c1c1c";
+      wofiBackground = "rgba(28, 28, 28, 0.84)";
+      wofiSelectionBackground = "rgba(208, 208, 208, 0.88)";
       foreground = "#d0d0d0";
       cursorText = "#1c1c1c";
       selectionBackground = "#d0d0d0";
@@ -247,12 +251,12 @@ let
     }
 
     #entry:selected {
-      background-color: ${palette.selectionBackground};
+      background-color: ${palette.wofiSelectionBackground};
       color: ${palette.selectionForeground};
     }
 
     #input {
-      background-color: ${palette.background};
+      background-color: ${palette.wofiBackground};
       color: ${palette.foreground};
       border: none;
       border-radius: 0px;
@@ -263,9 +267,9 @@ let
     }
 
     window {
-      background-color: ${palette.background};
+      background-color: ${palette.wofiBackground};
       color: ${palette.foreground};
-      border-radius: 5px;
+      border-radius: 0px;
     }
   '';
 
