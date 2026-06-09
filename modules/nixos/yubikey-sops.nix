@@ -66,8 +66,8 @@ in
       };
 
       pam-u2f-keys = {
-        owner = "root";
-        group = "root";
+        owner = "drew";
+        group = "users";
         mode = "0400";
       };
     };
