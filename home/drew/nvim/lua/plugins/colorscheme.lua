@@ -8,10 +8,28 @@ return {
         vim.o.background = variant
         vim.cmd.colorscheme("PaperColor")
 
+        local transparent_groups = {
+            "Normal",
+            "NormalNC",
+            "NormalFloat",
+            "FloatBorder",
+            "SignColumn",
+            "LineNr",
+            "CursorLineNr",
+            "EndOfBuffer",
+            "MsgArea",
+            "NonText",
+            "WinSeparator",
+        }
+
+        for _, group in ipairs(transparent_groups) do
+            pcall(vim.api.nvim_set_hl, 0, group, { bg = "NONE" })
+        end
+
         if variant == "light" then
-            vim.api.nvim_set_hl(0, "Normal", { bg = "white" })
-            vim.api.nvim_set_hl(0, "LineNr", { bg = "white" })
-            vim.api.nvim_set_hl(0, "ColorColumn", { bg = "lightgrey" })
+            pcall(vim.api.nvim_set_hl, 0, "ColorColumn", { bg = "lightgrey" })
+        else
+            pcall(vim.api.nvim_set_hl, 0, "ColorColumn", { bg = "#303030" })
         end
     end,
 }
