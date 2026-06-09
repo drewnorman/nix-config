@@ -11,6 +11,11 @@ let
       name = "papercolor";
       variant = "light";
       wallpaper = "papercolor-light.jpg";
+      wallpaperColorize = {
+        color = "white";
+        amount = 70;
+      };
+      alacrittyOpacity = 0.35;
       background = "#ffffff";
       foreground = "#1c1c1c";
       cursorText = "#ffffff";
@@ -43,6 +48,9 @@ let
       lockRing = "005f87";
       lockKey = "008700";
       lockInside = "ffffff88";
+      lockText = "1c1c1c";
+      lockVer = "005f87";
+      lockWrong = "af0000";
     };
 
     dark = {
@@ -50,6 +58,11 @@ let
       name = "papercolor";
       variant = "dark";
       wallpaper = "papercolor-dark.jpg";
+      wallpaperColorize = {
+        color = "black";
+        amount = 0;
+      };
+      alacrittyOpacity = 0.35;
       background = "#1c1c1c";
       foreground = "#d0d0d0";
       cursorText = "#1c1c1c";
@@ -82,6 +95,9 @@ let
       lockRing = "5fafd7";
       lockKey = "afd700";
       lockInside = "00000088";
+      lockText = "f5f5f5";
+      lockVer = "5fafd7";
+      lockWrong = "d7005f";
     };
   };
 
@@ -124,8 +140,9 @@ let
     }
 
     #workspaces button.focused {
-        background-color: ${palette.selectionBackground};
-        color: ${palette.selectionForeground};
+        background-color: transparent;
+        color: ${palette.foreground};
+        box-shadow: inset 0 -2px ${palette.foreground};
     }
 
     #workspaces button.urgent {

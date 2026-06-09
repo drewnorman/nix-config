@@ -7,6 +7,8 @@
 
 let
   theme = import ./themes.nix { variant = "light"; };
+  papercolorLightTheme = import ./themes.nix { variant = "light"; };
+  papercolorDarkTheme = import ./themes.nix { variant = "dark"; };
   wallpaperFallback = ./assets/wallpapers/white.jpg;
   papercolorLightWallpaper = ./assets/wallpapers/papercolor-light.jpg;
   papercolorDarkWallpaper = ./assets/wallpapers/papercolor-dark.jpg;
@@ -20,6 +22,8 @@ let
           -resize 5760x1200^ \
           -gravity center \
           -extent 5760x1200 \
+          -fill ${papercolorLightTheme.wallpaperColorize.color} \
+          -colorize ${toString papercolorLightTheme.wallpaperColorize.amount}% \
           "$TMPDIR/papercolor-light-canvas.jpg"
 
         magick "${wallpaperSource papercolorDarkWallpaper}" \
@@ -27,6 +31,8 @@ let
           -background black \
           -gravity north \
           -extent 5760x1200 \
+          -fill ${papercolorDarkTheme.wallpaperColorize.color} \
+          -colorize ${toString papercolorDarkTheme.wallpaperColorize.amount}% \
           "$TMPDIR/papercolor-dark-canvas.jpg"
 
         for theme in papercolor-light papercolor-dark; do
@@ -76,6 +82,12 @@ let
       --line-color 00000000 \
       --inside-color ${theme.lockInside} \
       --separator-color 00000000 \
+      --text-color ${theme.lockText} \
+      --text-clear-color ${theme.lockText} \
+      --text-caps-lock-color ${theme.lockText} \
+      --text-ver-color ${theme.lockVer} \
+      --text-wrong-color ${theme.lockWrong} \
+      --layout-text-color ${theme.lockText} \
       --grace 2 \
       --fade-in 0.2
   '';
@@ -346,7 +358,14 @@ in
           style = "Regular";
         };
       };
-      window.decorations = "none";
+      window = {
+        decorations = "none";
+        opacity = theme.alacrittyOpacity;
+        padding = {
+          x = 8;
+          y = 8;
+        };
+      };
     };
   };
 
