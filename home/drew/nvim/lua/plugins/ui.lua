@@ -28,9 +28,16 @@ return {
         "nvim-lualine/lualine.nvim",
         event = "VeryLazy",
         config = function()
+            local variant = os.getenv("DREW_THEME_VARIANT") or "light"
+            local lualine_theme = variant == "dark" and "papercolor_dark" or "papercolor_light"
+
+            if not pcall(require, "lualine.themes." .. lualine_theme) then
+                lualine_theme = "auto"
+            end
+
             require("lualine").setup({
                 options = {
-                    theme = "papercolor_light",
+                    theme = lualine_theme,
                     section_separators = "",
                     component_separators = "|",
                 },

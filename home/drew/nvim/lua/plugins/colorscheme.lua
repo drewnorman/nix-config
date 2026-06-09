@@ -3,10 +3,15 @@ return {
     lazy = false,
     priority = 1000,
     config = function()
-        vim.o.background = "light"
+        local variant = os.getenv("DREW_THEME_VARIANT") or "light"
+
+        vim.o.background = variant
         vim.cmd.colorscheme("PaperColor")
-        vim.api.nvim_set_hl(0, "Normal", { bg = "white" })
-        vim.api.nvim_set_hl(0, "LineNr", { bg = "white" })
-        vim.api.nvim_set_hl(0, "ColorColumn", { bg = "lightgrey" })
+
+        if variant == "light" then
+            vim.api.nvim_set_hl(0, "Normal", { bg = "white" })
+            vim.api.nvim_set_hl(0, "LineNr", { bg = "white" })
+            vim.api.nvim_set_hl(0, "ColorColumn", { bg = "lightgrey" })
+        end
     end,
 }

@@ -6,6 +6,41 @@
 }:
 
 let
+  theme = import ./themes.nix { variant = "light"; };
+  wallpaperFallback = ./assets/wallpapers/white.jpg;
+  papercolorLightWallpaper = ./assets/wallpapers/papercolor-light.jpg;
+  papercolorDarkWallpaper = ./assets/wallpapers/papercolor-dark.jpg;
+  wallpaperSource = path: if builtins.pathExists path then path else wallpaperFallback;
+  wallpaperSlices =
+    pkgs.runCommand "papercolor-wallpaper-slices" { nativeBuildInputs = [ pkgs.imagemagick ]; }
+      ''
+        mkdir -p "$out/papercolor-light" "$out/papercolor-dark"
+
+        magick "${wallpaperSource papercolorLightWallpaper}" \
+          -resize 5760x1200^ \
+          -gravity center \
+          -extent 5760x1200 \
+          "$TMPDIR/papercolor-light-canvas.jpg"
+
+        magick "${wallpaperSource papercolorDarkWallpaper}" \
+          -resize 5760x1200 \
+          -background black \
+          -gravity north \
+          -extent 5760x1200 \
+          "$TMPDIR/papercolor-dark-canvas.jpg"
+
+        for theme in papercolor-light papercolor-dark; do
+          magick "$TMPDIR/$theme-canvas.jpg" -crop 1920x1200+0+0 "$out/$theme/eDP-1.jpg"
+          magick "$TMPDIR/$theme-canvas.jpg" -crop 1920x1080+1920+0 "$out/$theme/HDMI-A-1.jpg"
+          magick "$TMPDIR/$theme-canvas.jpg" -crop 1920x1080+3840+0 "$out/$theme/DP-2.jpg"
+        done
+      '';
+  swayWallpaperConfig = ''
+    output eDP-1 bg $HOME/.local/share/wallpapers/${theme.id}/eDP-1.jpg fill
+    output HDMI-A-1 bg $HOME/.local/share/wallpapers/${theme.id}/HDMI-A-1.jpg fill
+    output DP-2 bg $HOME/.local/share/wallpapers/${theme.id}/DP-2.jpg fill
+  '';
+
   airpodsConnect = pkgs.writeShellScriptBin "airpods-connect" ''
     ${pkgs.libnotify}/bin/notify-send -t 3000 "Connecting AirPods Pro 3..."
     if ${pkgs.bluez}/bin/bluetoothctl power on && ${pkgs.bluez}/bin/bluetoothctl connect 30:0E:43:42:AF:53; then
@@ -36,10 +71,10 @@ let
       --indicator-thickness 7 \
       --effect-blur 7x5 \
       --effect-vignette 0.5:0.5 \
-      --ring-color bb00cc \
-      --key-hl-color 880033 \
+      --ring-color ${theme.lockRing} \
+      --key-hl-color ${theme.lockKey} \
       --line-color 00000000 \
-      --inside-color 00000088 \
+      --inside-color ${theme.lockInside} \
       --separator-color 00000000 \
       --grace 2 \
       --fade-in 0.2
@@ -60,50 +95,50 @@ let
   '';
 
   waybarGammastepStatus = pkgs.writeShellScriptBin "waybar-gammastep-status" ''
-    status="$(${pkgs.gammastep}/bin/gammastep -p -c "$HOME/.config/gammastep/config.ini" 2>&1 || true)"
+        status="$(${pkgs.gammastep}/bin/gammastep -p -c "$HOME/.config/gammastep/config.ini" 2>&1 || true)"
 
-    if systemctl --user is-active --quiet gammastep.service; then
-      running="Running"
-      class="unknown"
-    else
-      running="Stopped"
-      class="stopped"
-    fi
+        if systemctl --user is-active --quiet gammastep.service; then
+          running="Running"
+          class="unknown"
+        else
+          running="Stopped"
+          class="stopped"
+        fi
 
-    period="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Period:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
-    temperature="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Color temperature:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
-    brightness="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Brightness:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+        period="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Period:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+        temperature="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Color temperature:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
+        brightness="$(printf '%s\n' "$status" | ${pkgs.gnused}/bin/sed -n 's/^.*Brightness:[[:space:]]*//p' | ${pkgs.coreutils}/bin/head -n1)"
 
-    [ -n "$period" ] || period="Unknown"
-    [ -n "$temperature" ] || temperature="Unknown"
-    [ -n "$brightness" ] || brightness="Unknown"
+        [ -n "$period" ] || period="Unknown"
+        [ -n "$temperature" ] || temperature="Unknown"
+        [ -n "$brightness" ] || brightness="Unknown"
 
-    if [ "$running" = "Running" ]; then
-      case "$period" in
-        Daytime) class="daytime" ;;
-        Night) class="night" ;;
-        Transition) class="transition" ;;
-        *) class="unknown" ;;
-      esac
-    fi
+        if [ "$running" = "Running" ]; then
+          case "$period" in
+            Daytime) class="daytime" ;;
+            Night) class="night" ;;
+            Transition) class="transition" ;;
+            *) class="unknown" ;;
+          esac
+        fi
 
-    case "$class" in
-      daytime) icon="󱩎" ;;
-      night) icon="󱩍" ;;
-      transition) icon="󱩏" ;;
-      *) icon="󱩐" ;;
-    esac
+        case "$class" in
+          daytime) icon="󱩎" ;;
+          night) icon="󱩍" ;;
+          transition) icon="󱩏" ;;
+          *) icon="󱩐" ;;
+        esac
 
-    tooltip="Gammastep: $running
-Period: $period
-Temperature: $temperature
-Brightness: $brightness"
+        tooltip="Gammastep: $running
+    Period: $period
+    Temperature: $temperature
+    Brightness: $brightness"
 
-      ${pkgs.jq}/bin/jq -cn \
-        --arg text "$icon" \
-        --arg tooltip "$tooltip" \
-        --arg class "$class" \
-        '{text: $text, tooltip: $tooltip, class: $class}'
+          ${pkgs.jq}/bin/jq -cn \
+            --arg text "$icon" \
+            --arg tooltip "$tooltip" \
+            --arg class "$class" \
+            '{text: $text, tooltip: $tooltip, class: $class}'
   '';
 
   waybarGammastepToggle = pkgs.writeShellScriptBin "waybar-gammastep-toggle" ''
@@ -148,6 +183,11 @@ in
     username = "drew";
     homeDirectory = "/home/drew";
     stateVersion = "25.11";
+    sessionVariables = {
+      DREW_THEME = theme.id;
+      DREW_THEME_NAME = theme.name;
+      DREW_THEME_VARIANT = theme.variant;
+    };
     packages = with pkgs; [
       airpodsConnect
       airpodsDisconnect
@@ -286,41 +326,7 @@ in
   programs.alacritty = {
     enable = true;
     settings = {
-      colors = {
-        draw_bold_text_with_bright_colors = true;
-        bright = {
-          black = "#1c1c1c";
-          blue = "#005f87";
-          cyan = "#00afaf";
-          green = "#5f8700";
-          magenta = "#8700af";
-          red = "#d70000";
-          white = "#ffffff";
-          yellow = "#d75f00";
-        };
-        cursor = {
-          cursor = "#1c1c1c";
-          text = "#ffffff";
-        };
-        normal = {
-          black = "#1c1c1c";
-          blue = "#005faf";
-          cyan = "#0087af";
-          green = "#008700";
-          magenta = "#d70087";
-          red = "#af0000";
-          white = "#ffffff";
-          yellow = "#d75f00";
-        };
-        primary = {
-          background = "#ffffff";
-          foreground = "#1c1c1c";
-        };
-        selection = {
-          background = "#1c1c1c";
-          text = "#ffffff";
-        };
-      };
+      colors = theme.alacrittyColors;
       font = {
         size = 11;
         bold = {
@@ -479,9 +485,12 @@ in
 
   programs.tmux = {
     enable = true;
-    extraConfig = builtins.replaceStrings [ "/usr/bin/fish" ] [ "${pkgs.fish}/bin/fish" ] (
-      builtins.readFile ./config/tmux/tmux.conf
-    );
+    extraConfig =
+      builtins.replaceStrings [ "/usr/bin/fish" ] [ "${pkgs.fish}/bin/fish" ] (
+        builtins.readFile ./config/tmux/tmux.conf
+      )
+      + "\n"
+      + theme.tmuxTheme;
   };
 
   programs.zoxide = {
@@ -567,7 +576,7 @@ in
 
   programs.waybar = {
     enable = true;
-    style = builtins.readFile ./config/waybar/style.css;
+    style = theme.waybarStyle;
     settings = {
       mainBar = {
         height = 30;
@@ -751,13 +760,23 @@ in
     };
     configFile = {
       "htop/htoprc".source = ./config/htop/htoprc;
-      "mako/config".source = ./config/mako/config;
-      "sway/config".source = ./config/sway/config;
+      "mako/config".text = theme.makoConfig;
+      "sway/config".text =
+        builtins.replaceStrings
+          [
+            "output * bg $HOME/.local/share/wallpapers/white.jpg fill"
+            "include $HOME/.config/sway/config.local"
+          ]
+          [
+            "# Wallpaper is applied after config.local so output geometry is already set."
+            "include $HOME/.config/sway/config.local\n${swayWallpaperConfig}"
+          ]
+          (builtins.readFile ./config/sway/config);
       "sway/config.local".source = ./config/sway/config.local;
       "wofi/config".source = ./config/wofi/config;
-      "wofi/style.css".source = ./config/wofi/style.css;
+      "wofi/style.css".text = theme.wofiStyle;
       "yazi/keymap.toml".source = ./config/yazi/keymap.toml;
-      "yazi/theme.toml".source = ./config/yazi/theme.toml;
+      "yazi/theme.toml".text = theme.yaziTheme;
       "yazi/yazi.toml".source = ./config/yazi/yazi.toml;
     };
     dataFile = {
@@ -766,6 +785,10 @@ in
       "applications/nvim.desktop".text = hiddenDesktopEntry "nvim";
       "applications/yazi.desktop".text = hiddenDesktopEntry "Yazi";
       "wallpapers/white.jpg".source = ./assets/wallpapers/white.jpg;
+      "wallpapers/papercolor-light.jpg".source = wallpaperSource papercolorLightWallpaper;
+      "wallpapers/papercolor-dark.jpg".source = wallpaperSource papercolorDarkWallpaper;
+      "wallpapers/papercolor-light".source = "${wallpaperSlices}/papercolor-light";
+      "wallpapers/papercolor-dark".source = "${wallpaperSlices}/papercolor-dark";
     };
     mimeApps = {
       enable = true;
