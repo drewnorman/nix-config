@@ -290,6 +290,14 @@ in
     };
   };
 
+  home.file.".claude/settings.json".text =
+    builtins.toJSON {
+      "$schema" = "https://json.schemastore.org/claude-code-settings.json";
+      attribution.commit = "";
+      includeCoAuthoredBy = false;
+    }
+    + "\n";
+
   home.file.".gitignore".text = ''
     .rgignore
     /.config/nvim/.nvimlog
