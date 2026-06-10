@@ -413,20 +413,52 @@ in
     enableDefaultConfig = false;
     includes = [ "~/.ssh/config.local" ];
     matchBlocks = {
-      "github.com" = {
+      "github.com" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
         user = "git";
         identityFile = "~/.ssh/git@github.com";
         identitiesOnly = true;
       };
 
-      "bitbucket.org" = {
+      "bitbucket.org" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
         user = "git";
         identityFile = "~/.ssh/git@bitbucket.org";
         identitiesOnly = true;
       };
+
+      wildcardIdentity =
+        config.lib.dag.entryAfter
+          [
+            "github.com"
+            "bitbucket.org"
+          ]
+          {
+            host = "* !*.sftp.wpengine.com !lab-core !lab-core-ts";
+            identityFile = "~/.ssh/%r@%h";
+          };
     };
   };
   home.file.".ssh/config".force = true;
+
+  home.activation.writeMutableSshConfig = config.lib.dag.entryAfter [ "linkGeneration" ] ''
+    ssh_dir="${config.home.homeDirectory}/.ssh"
+    ssh_config="$ssh_dir/config"
+
+    run ${pkgs.coreutils}/bin/install -d -m 700 "$ssh_dir"
+    if [ -e "$ssh_config" ]; then
+      if [[ -v DRY_RUN ]]; then
+        echo "${pkgs.coreutils}/bin/install -m 600 -T $ssh_config <temporary file>"
+        echo "${pkgs.coreutils}/bin/mv <temporary file> $ssh_config"
+      else
+        config_tmp="$(${pkgs.coreutils}/bin/mktemp "$ssh_dir/config.XXXXXX")"
+        ${pkgs.coreutils}/bin/install -m 600 -T "$ssh_config" "$config_tmp"
+        ${pkgs.coreutils}/bin/mv -f "$config_tmp" "$ssh_config"
+      fi
+    fi
+    run ${pkgs.coreutils}/bin/chmod 700 "$ssh_dir"
+    if [ -e "$ssh_config" ]; then
+      run ${pkgs.coreutils}/bin/chmod 600 "$ssh_config"
+    fi
+  '';
 
   programs.fish = {
     enable = true;
