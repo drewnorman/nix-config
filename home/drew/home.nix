@@ -6,7 +6,8 @@
 }:
 
 let
-  theme = import ./themes.nix { variant = "light"; };
+  variant = import ./theme-variant.nix;
+  theme = import ./themes.nix { inherit variant; };
   papercolorLightTheme = import ./themes.nix { variant = "light"; };
   papercolorDarkTheme = import ./themes.nix { variant = "dark"; };
   wallpaperFallback = ./assets/wallpapers/white.jpg;
@@ -295,6 +296,7 @@ in
       "$schema" = "https://json.schemastore.org/claude-code-settings.json";
       attribution.commit = "";
       includeCoAuthoredBy = false;
+      theme = theme.variant;
     }
     + "\n";
 
@@ -458,6 +460,10 @@ in
     if [ -e "$ssh_config" ]; then
       run ${pkgs.coreutils}/bin/chmod 600 "$ssh_config"
     fi
+  '';
+
+  home.activation.writeThemeState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
+    $DRY_RUN_CMD printf '%s\n' "${theme.variant}" > "$HOME/.local/state/drew-theme"
   '';
 
   programs.fish = {
