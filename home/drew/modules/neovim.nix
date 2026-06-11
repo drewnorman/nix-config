@@ -15,7 +15,6 @@
     runtimePkgs = with pkgs; [
       emmet-language-server
       fzf
-      gcc
       intelephense
       jdt-language-server
       lua-language-server
@@ -30,6 +29,35 @@
       vscode-langservers-extracted
       yazi
     ];
+
+    specs.treesitter-grammars = {
+      data = with pkgs.vimPlugins.nvim-treesitter.builtGrammars; [
+        bash
+        c
+        css
+        diff
+        html
+        java
+        javascript
+        json
+        lua
+        markdown
+        markdown_inline
+        nix
+        php
+        query
+        regex
+        rust
+        tsx
+        twig
+        typescript
+        vim
+        vimdoc
+        vue
+        xml
+        yaml
+      ];
+    };
 
     info.lsp = {
       emmet = true;

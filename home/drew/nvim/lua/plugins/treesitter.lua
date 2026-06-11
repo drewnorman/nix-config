@@ -2,16 +2,10 @@ return {
     {
         "nvim-treesitter/nvim-treesitter",
         branch = "master",
-        build = ":TSUpdate",
+        build = nil,
         dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
         config = function()
             require("nvim-treesitter.configs").setup({
-                ensure_installed = {
-                    "bash", "c", "css", "diff", "html", "java", "javascript",
-                    "json", "lua", "markdown", "markdown_inline", "nix", "php",
-                    "query", "regex", "rust", "tsx", "twig", "typescript",
-                    "vim", "vimdoc", "vue", "xml", "yaml",
-                },
                 auto_install = false,
                 highlight = { enable = true },
                 indent = { enable = true },
