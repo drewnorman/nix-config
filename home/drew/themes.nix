@@ -24,14 +24,16 @@ let
       selectionBackground = "#1c1c1c";
       selectionForeground = "#ffffff";
       statusBackground = "#eeeeee";
+      tmuxInactivePaneBackground = "#eeeeee";
       panelBackground = "#ffffff";
       mutedBackground = "#e4e4e4";
       subtleBackground = "#c6c6c6";
       mutedForeground = "#878787";
       statusForeground = "#444444";
       border = "#1c1c1c";
-      accent = "#0087af";
+      accent = "#007ea2";
       accentAlt = "#005f87";
+      accentTint = "rgba(0, 126, 162, 0.1)";
       blue = "#005faf";
       cyan = "#0087af";
       brightCyan = "#00afaf";
@@ -64,7 +66,7 @@ let
         color = "black";
         amount = 0;
       };
-      alacrittyOpacity = 0.35;
+      alacrittyOpacity = 0.75;
       background = "#1c1c1c";
       wofiBackground = "rgba(28, 28, 28, 0.84)";
       wofiSelectionBackground = "rgba(208, 208, 208, 0.88)";
@@ -73,6 +75,7 @@ let
       selectionBackground = "#d0d0d0";
       selectionForeground = "#1c1c1c";
       statusBackground = "#303030";
+      tmuxInactivePaneBackground = "#151515";
       panelBackground = "#1c1c1c";
       mutedBackground = "#3a3a3a";
       subtleBackground = "#585858";
@@ -81,6 +84,7 @@ let
       border = "#d0d0d0";
       accent = "#5fafd7";
       accentAlt = "#0087af";
+      accentTint = "rgba(95, 175, 215, 0.12)";
       blue = "#5fafd7";
       cyan = "#5fd7af";
       brightCyan = "#5fd7d7";
@@ -93,7 +97,7 @@ let
       red = "#d7005f";
       brightRed = "#df005f";
       white = "#d0d0d0";
-      offWhite = "#d0d0d0";
+      offWhite = "#eeeeee";
       black = "#1c1c1c";
       waybarChromiumBackground = "#303030";
       lockRing = "5fafd7";
@@ -140,13 +144,13 @@ let
     }
 
     #workspaces button:hover {
-        background: rgba(0, 0, 0, 0.2);
+        background: ${palette.accentTint};
     }
 
     #workspaces button.focused {
         background-color: transparent;
         color: ${palette.foreground};
-        box-shadow: inset 0 -2px ${palette.foreground};
+        box-shadow: inset 0 -2px ${palette.accent};
     }
 
     #workspaces button.urgent {
@@ -175,6 +179,10 @@ let
     #idle_inhibitor,
     #mpd {
         padding: 0 10px;
+        color: ${palette.foreground};
+    }
+
+    #clock {
         color: ${palette.foreground};
     }
 
@@ -246,13 +254,41 @@ let
   '';
 
   wofiStyle = ''
+    @define-color theme_fg_color ${palette.foreground};
+    @define-color theme_text_color ${palette.foreground};
+    @define-color theme_selected_fg_color ${palette.foreground};
+    @define-color theme_selected_bg_color transparent;
+
     * {
       font-family: "Inconsolata Medium", monospace;
+      color: ${palette.foreground};
     }
 
-    #entry:selected {
-      background-color: ${palette.wofiSelectionBackground};
-      color: ${palette.selectionForeground};
+    #entry,
+    flowboxchild {
+      color: ${palette.foreground};
+    }
+
+    #entry:selected,
+    #entry:selected:focus,
+    #entry:selected:hover,
+    flowboxchild:selected,
+    flowboxchild:selected:focus,
+    flowboxchild:selected:hover {
+      background-color: transparent;
+      border-left: 3px solid ${palette.accent};
+      color: ${palette.foreground} !important;
+    }
+
+    #selected,
+    #selected #text,
+    #selected label,
+    #selected *,
+    #text:selected,
+    #text:focus,
+    label,
+    label:selected {
+      color: ${palette.foreground} !important;
     }
 
     #input {
@@ -264,6 +300,7 @@ let
 
     #text {
       margin-left: 1em;
+      color: ${palette.foreground} !important;
     }
 
     window {
@@ -278,7 +315,7 @@ let
     height=300
     margin=15
     padding=10
-    border-color=${noHash palette.border}FF
+    border-color=${noHash palette.accent}FF
     border-size=1
     background-color=${noHash palette.background}FF
     text-color=${noHash palette.foreground}FF
@@ -291,6 +328,8 @@ let
     # pane borders
     set -g pane-border-style "fg=${palette.subtleBackground}"
     set -g pane-active-border-style "fg=${palette.accent}"
+    set -g window-style "bg=${palette.tmuxInactivePaneBackground}"
+    set -g window-active-style "bg=default"
 
     # status bar
     set -g status on
@@ -340,17 +379,17 @@ let
     padding = { open = "█", close = "█" }
 
     [tabs]
-    active    = { fg = "${palette.offWhite}", bg = "${palette.accentAlt}", bold = true }
+    active    = { fg = "${palette.background}", bg = "${palette.accentAlt}", bold = true }
     inactive  = { fg = "${palette.statusForeground}", bg = "${palette.subtleBackground}" }
     sep_inner = { open = "[", close = "]" }
     sep_outer = { open = "", close = "" }
 
     [mode]
-    normal_main = { fg = "${palette.offWhite}", bg = "${palette.accentAlt}", bold = true }
+    normal_main = { fg = "${palette.background}", bg = "${palette.accentAlt}", bold = true }
     normal_alt  = { fg = "${palette.accentAlt}", bg = "${palette.mutedBackground}" }
-    select_main = { fg = "${palette.offWhite}", bg = "${palette.green}", bold = true }
+    select_main = { fg = "${palette.background}", bg = "${palette.green}", bold = true }
     select_alt  = { fg = "${palette.green}", bg = "${palette.mutedBackground}" }
-    unset_main  = { fg = "${palette.offWhite}", bg = "${palette.purple}", bold = true }
+    unset_main  = { fg = "${palette.background}", bg = "${palette.purple}", bold = true }
     unset_alt   = { fg = "${palette.purple}", bg = "${palette.mutedBackground}" }
 
     [status]
@@ -380,7 +419,7 @@ let
     title      = { fg = "${palette.green}", bold = true }
     body       = { fg = "${palette.statusForeground}" }
     list       = { fg = "${palette.statusForeground}" }
-    btn_yes    = { fg = "${palette.offWhite}", bg = "${palette.green}", bold = true }
+    btn_yes    = { fg = "${palette.background}", bg = "${palette.green}", bold = true }
     btn_no     = { fg = "${palette.statusForeground}", bg = "${palette.subtleBackground}" }
     btn_labels = [ " yes ", " no " ]
 
@@ -397,18 +436,18 @@ let
 
     [pick]
     border   = { fg = "${palette.accentAlt}" }
-    active   = { fg = "${palette.offWhite}", bg = "${palette.accent}" }
+    active   = { fg = "${palette.background}", bg = "${palette.accent}" }
     inactive = { fg = "${palette.statusForeground}" }
 
     [input]
     border   = { fg = "${palette.accentAlt}" }
     title    = { fg = "${palette.green}", bold = true }
     value    = { fg = "${palette.statusForeground}" }
-    selected = { fg = "${palette.offWhite}", bg = "${palette.accent}" }
+    selected = { fg = "${palette.background}", bg = "${palette.accent}" }
 
     [cmp]
     border       = { fg = "${palette.accentAlt}" }
-    active       = { fg = "${palette.offWhite}", bg = "${palette.accent}" }
+    active       = { fg = "${palette.background}", bg = "${palette.accent}" }
     inactive     = { fg = "${palette.statusForeground}" }
     icon_file    = "f"
     icon_folder  = "d"
@@ -417,13 +456,13 @@ let
     [tasks]
     border  = { fg = "${palette.accentAlt}" }
     title   = { fg = "${palette.green}", bold = true }
-    hovered = { fg = "${palette.offWhite}", bg = "${palette.accent}" }
+    hovered = { fg = "${palette.background}", bg = "${palette.accent}" }
 
     [help]
     on         = { fg = "${palette.blue}", bold = true }
     run        = { fg = "${palette.purple}" }
     desc       = { fg = "${palette.statusForeground}" }
-    hovered    = { fg = "${palette.offWhite}", bg = "${palette.accent}" }
+    hovered    = { fg = "${palette.background}", bg = "${palette.accent}" }
     footer     = { fg = "${palette.mutedForeground}", bg = "${palette.mutedBackground}" }
     icon_info  = "i"
     icon_warn  = "!"
@@ -458,7 +497,7 @@ palette
       yellow = palette.yellow;
     };
     cursor = {
-      cursor = palette.foreground;
+      cursor = palette.accent;
       text = palette.cursorText;
     };
     normal = {

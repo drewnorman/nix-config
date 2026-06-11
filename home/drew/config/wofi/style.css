@@ -1,10 +1,38 @@
+@define-color theme_fg_color #1c1c1c;
+@define-color theme_text_color #1c1c1c;
+@define-color theme_selected_fg_color #1c1c1c;
+@define-color theme_selected_bg_color transparent;
+
 * {
   font-family: "Inconsolata Medium", monospace;
+  color: #1c1c1c;
 }
 
-#entry:selected {
-  background-color: rgba(28, 28, 28, 0.88);
-  color: #ffffff;
+#entry,
+flowboxchild {
+  color: #1c1c1c;
+}
+
+#entry:selected,
+#entry:selected:focus,
+#entry:selected:hover,
+flowboxchild:selected,
+flowboxchild:selected:focus,
+flowboxchild:selected:hover {
+  background-color: transparent;
+  border-left: 3px solid #007ea2;
+  color: #1c1c1c !important;
+}
+
+#selected,
+#selected #text,
+#selected label,
+#selected *,
+#text:selected,
+#text:focus,
+label,
+label:selected {
+  color: #1c1c1c !important;
 }
 
 #input {
@@ -16,6 +44,7 @@
 
 #text {
   margin-left: 1em;
+  color: #1c1c1c !important;
 }
 
 window {
