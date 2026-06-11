@@ -47,6 +47,7 @@ let
     output HDMI-A-1 bg $HOME/.local/share/wallpapers/${theme.id}/HDMI-A-1.jpg fill
     output DP-2 bg $HOME/.local/share/wallpapers/${theme.id}/DP-2.jpg fill
   '';
+  dictateIcon = "󰔊";
 
   airpodsConnect = pkgs.writeShellScriptBin "airpods-connect" ''
     ${pkgs.libnotify}/bin/notify-send -t 3000 "Connecting AirPods Pro 3..."
@@ -169,6 +170,381 @@ let
     ${pkgs.procps}/bin/pkill -RTMIN+1 waybar >/dev/null 2>&1 || true
   '';
 
+  dictateStatus = pkgs.writeShellScriptBin "dictate-status" ''
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}/dictate"
+    status_file="$runtime_dir/status.json"
+
+    if [ -s "$status_file" ]; then
+      ${pkgs.coreutils}/bin/cat "$status_file"
+    else
+      ${pkgs.jq}/bin/jq -cn \
+        --arg text "${dictateIcon}" \
+        --arg tooltip "Dictation idle" \
+        --arg class "idle" \
+        '{text: $text, tooltip: $tooltip, class: $class}'
+    fi
+  '';
+
+  dictateStreamStart = pkgs.writeShellScriptBin "dictate-stream-start" ''
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}/dictate"
+    model_file="$HOME/.local/share/whisper/models/ggml-base.en.bin"
+    fallback_model_file="$HOME/.local/share/whisper/models/ggml-small.en.bin"
+    final_fallback_model_file="$HOME/.local/share/whisper/models/ggml-medium.en.bin"
+    stream_pid_file="$runtime_dir/stream.pid"
+    parser_pid_file="$runtime_dir/parser.pid"
+    watcher_pid_file="$runtime_dir/watcher.pid"
+    status_file="$runtime_dir/status.json"
+    stream_output="$runtime_dir/stream.out"
+    stream_log="$runtime_dir/stream.log"
+    parser_log="$runtime_dir/parser.log"
+    startup_log="$runtime_dir/startup.log"
+
+    update_status() {
+      ${pkgs.jq}/bin/jq -cn \
+        --arg text "$1" \
+        --arg tooltip "$2" \
+        --arg class "$3" \
+        '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
+      ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
+    }
+
+    is_alive() {
+      pid_file="$1"
+      [ -s "$pid_file" ] && ${pkgs.procps}/bin/kill -0 "$(${pkgs.coreutils}/bin/cat "$pid_file")" >/dev/null 2>&1
+    }
+
+    ${pkgs.coreutils}/bin/mkdir -p "$runtime_dir"
+
+    if is_alive "$stream_pid_file" || is_alive "$parser_pid_file"; then
+      ${pkgs.libnotify}/bin/notify-send -t 3000 "Dictation is already listening."
+      exit 0
+    fi
+
+    if [ -s "$model_file" ]; then
+      model_name="base.en"
+    elif [ -s "$fallback_model_file" ]; then
+      model_file="$fallback_model_file"
+      model_name="small.en"
+      ${pkgs.libnotify}/bin/notify-send -t 5000 "Dictation using small.en" "Run dictate-model-install to install base.en for lower latency."
+    elif [ -s "$final_fallback_model_file" ]; then
+      model_file="$final_fallback_model_file"
+      model_name="medium.en"
+      ${pkgs.libnotify}/bin/notify-send -t 5000 "Dictation using medium.en" "Run dictate-model-install to install base.en for lower latency."
+    else
+      update_status "${dictateIcon}" "Missing Whisper model. Run dictate-model-install." "error"
+      ${pkgs.libnotify}/bin/notify-send -t 7000 "Dictation model missing" "Run dictate-model-install first."
+      exit 1
+    fi
+
+    ${pkgs.coreutils}/bin/rm -f "$stream_output" "$stream_log" "$parser_log" "$startup_log" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    : > "$stream_output"
+    : > "$parser_log"
+    update_status "${dictateIcon}" "Dictation listening with $model_name (step 3s, window 10s)..." "listening"
+
+    ${pkgs.whisper-cpp}/bin/whisper-stream \
+      -m "$model_file" \
+      -l en \
+      -t 8 \
+      --step 3000 \
+      --length 10000 \
+      -vth 0.6 \
+      > "$stream_output" 2> "$stream_log" &
+    stream_pid="$!"
+    printf '%s\n' "$stream_pid" > "$stream_pid_file"
+
+    ${pkgs.coreutils}/bin/sleep 0.5
+    if ! ${pkgs.procps}/bin/kill -0 "$stream_pid" >/dev/null 2>&1; then
+      failure="$(${pkgs.coreutils}/bin/tail -n 4 "$stream_log" 2>/dev/null | ${pkgs.coreutils}/bin/tr '\n' ' ' | ${pkgs.gnused}/bin/sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+      [ -n "$failure" ] || failure="See $stream_log"
+      update_status "${dictateIcon}" "Dictation stream failed: $failure" "error"
+      ${pkgs.libnotify}/bin/notify-send -t 8000 "Dictation stream failed" "$failure"
+      ${pkgs.coreutils}/bin/rm -f "$stream_pid_file"
+      exit 1
+    fi
+
+    (
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        ${pkgs.coreutils}/bin/sleep 0.5
+        ${pkgs.gnugrep}/bin/grep -Eq 'using VAD|n_new_line' "$stream_log" 2>/dev/null && exit 0
+        if ! ${pkgs.procps}/bin/kill -0 "$stream_pid" >/dev/null 2>&1; then
+          failure="$(${pkgs.coreutils}/bin/tail -n 4 "$stream_log" 2>/dev/null | ${pkgs.coreutils}/bin/tr '\n' ' ' | ${pkgs.gnused}/bin/sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+          [ -n "$failure" ] || failure="See $stream_log"
+          update_status "${dictateIcon}" "Dictation stream failed: $failure" "error"
+          ${pkgs.libnotify}/bin/notify-send -t 8000 "Dictation stream failed" "$failure"
+          ${pkgs.coreutils}/bin/rm -f "$stream_pid_file"
+          exit 1
+        fi
+      done
+      printf '%s\n' "Dictation stream is still starting. See $stream_log" > "$startup_log"
+      update_status "${dictateIcon}" "Dictation still starting. See $stream_log" "listening"
+    ) &
+
+    (
+      ${pkgs.coreutils}/bin/tail -c +1 -F "$stream_output" 2>/dev/null |
+        ${pkgs.gawk}/bin/awk '
+          BEGIN {
+            RS = "\r|\n"
+          }
+
+          function clean(value) {
+            gsub(/\033\[[0-9;?]*[[:alpha:]]/, "", value)
+            gsub(/\[[^]]*\][ ]*/, "", value)
+            gsub(/[[:space:]]+/, " ", value)
+            sub(/^ /, "", value)
+            sub(/ $/, "", value)
+            return value
+          }
+
+          function emit_text(value, emit, max_overlap, i) {
+            value = clean(value)
+            if (value == "") {
+              return
+            }
+
+            emit = value
+            if (last_text != "") {
+              if (value == last_text) {
+                emit = ""
+              } else if (index(value, last_text) == 1) {
+                emit = substr(value, length(last_text) + 1)
+              } else if (index(last_text, value) == 1) {
+                emit = ""
+              } else {
+                max_overlap = length(last_text)
+                if (length(value) < max_overlap) {
+                  max_overlap = length(value)
+                }
+                for (i = max_overlap; i > 0; i--) {
+                  if (substr(last_text, length(last_text) - i + 1) == substr(value, 1, i)) {
+                    emit = substr(value, i + 1)
+                    break
+                  }
+                }
+              }
+            }
+
+            last_text = value
+            emit = clean(emit)
+            if (emit != "") {
+              print "STATUS\tTranscribing...\ttranscribing"
+              print "TEXT\t" emit
+              print "STATUS\tDictation listening...\tlistening"
+              fflush()
+            }
+          }
+
+          /^### Transcription [0-9]+ START/ {
+            in_block = 1
+            text = ""
+            print "STATUS\tTranscribing...\ttranscribing"
+            fflush()
+            next
+          }
+
+          /^### Transcription [0-9]+ END/ {
+            if (in_block) {
+              emit_text(text)
+            }
+            in_block = 0
+            text = ""
+            next
+          }
+
+          in_block && $0 !~ /^$/ {
+            text = text " " $0
+            next
+          }
+
+          {
+            line = clean($0)
+            if (line == "" || line == "Start speaking" || line == "BLANK_AUDIO") {
+              next
+            }
+            emit_text(line)
+          }
+        ' |
+        while IFS="$(printf '\t')" read -r kind value class; do
+          case "$kind" in
+            STATUS)
+              update_status "${dictateIcon}" "$value" "$class"
+              ;;
+            TEXT)
+              printf '%s\n' "Typing: $value" >> "$parser_log"
+              focused="$(${pkgs.sway}/bin/swaymsg -t get_tree 2>/dev/null | ${pkgs.jq}/bin/jq -r '.. | objects | select(.focused? == true) | [(.app_id // .window_properties.class // "unknown"), (.name // "unnamed")] | @tsv' 2>/dev/null || true)"
+              [ -n "$focused" ] && printf '%s\n' "Focus: $focused" >> "$parser_log"
+              update_status "${dictateIcon}" "Dictation typing into focused window..." "typing"
+              if ! ${pkgs.wtype}/bin/wtype -d 15 -- "$value " >> "$parser_log" 2>&1; then
+                update_status "${dictateIcon}" "Dictation typing failed. See $parser_log" "error"
+                ${pkgs.libnotify}/bin/notify-send -t 8000 "Dictation typing failed" "See $parser_log"
+              fi
+              ;;
+          esac
+        done
+    ) &
+    parser_pid="$!"
+    printf '%s\n' "$parser_pid" > "$parser_pid_file"
+
+    (
+      while ${pkgs.procps}/bin/kill -0 "$stream_pid" >/dev/null 2>&1; do
+        ${pkgs.coreutils}/bin/sleep 1
+      done
+
+      if [ -s "$stream_pid_file" ] && [ "$(${pkgs.coreutils}/bin/cat "$stream_pid_file")" = "$stream_pid" ]; then
+        failure="$(${pkgs.coreutils}/bin/tail -n 4 "$stream_log" 2>/dev/null | ${pkgs.coreutils}/bin/tr '\n' ' ' | ${pkgs.gnused}/bin/sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+        [ -n "$failure" ] || failure="See $stream_log"
+        update_status "${dictateIcon}" "Dictation stream exited: $failure" "error"
+        ${pkgs.libnotify}/bin/notify-send -t 8000 "Dictation stream exited" "$failure"
+        ${pkgs.coreutils}/bin/rm -f "$stream_pid_file"
+      fi
+    ) &
+    watcher_pid="$!"
+    printf '%s\n' "$watcher_pid" > "$watcher_pid_file"
+
+    ${pkgs.libnotify}/bin/notify-send -t 2000 "Dictation listening with $model_name..."
+  '';
+
+  dictateStreamStop = pkgs.writeShellScriptBin "dictate-stream-stop" ''
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}/dictate"
+    stream_pid_file="$runtime_dir/stream.pid"
+    parser_pid_file="$runtime_dir/parser.pid"
+    watcher_pid_file="$runtime_dir/watcher.pid"
+    status_file="$runtime_dir/status.json"
+
+    update_status() {
+      ${pkgs.coreutils}/bin/mkdir -p "$runtime_dir"
+      ${pkgs.jq}/bin/jq -cn \
+        --arg text "$1" \
+        --arg tooltip "$2" \
+        --arg class "$3" \
+        '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
+      ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
+    }
+
+    kill_tree() {
+      pid="$1"
+      ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1 || return 0
+      for child in $(${pkgs.procps}/bin/pgrep -P "$pid" 2>/dev/null || true); do
+        kill_tree "$child"
+      done
+      ${pkgs.procps}/bin/kill "$pid" >/dev/null 2>&1 || true
+    }
+
+    kill_pid_file() {
+      pid_file="$1"
+      if [ -s "$pid_file" ]; then
+        kill_tree "$(${pkgs.coreutils}/bin/cat "$pid_file")"
+      fi
+    }
+
+    kill_pid_file "$stream_pid_file"
+    ${pkgs.coreutils}/bin/sleep 0.7
+    kill_pid_file "$parser_pid_file"
+    kill_pid_file "$watcher_pid_file"
+    kill_pid_file "$stream_pid_file"
+    ${pkgs.coreutils}/bin/rm -f "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    update_status "${dictateIcon}" "Dictation idle" "idle"
+    ${pkgs.libnotify}/bin/notify-send -t 2000 "Dictation stopped."
+  '';
+
+  dictateStart = pkgs.writeShellScriptBin "dictate-start" ''
+    exec ${dictateStreamStart}/bin/dictate-stream-start
+  '';
+
+  dictateStop = pkgs.writeShellScriptBin "dictate-stop" ''
+    exec ${dictateStreamStop}/bin/dictate-stream-stop
+  '';
+
+  dictateCancel = pkgs.writeShellScriptBin "dictate-cancel" ''
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}/dictate"
+    record_pid_file="$runtime_dir/record.pid"
+    transcribe_pid_file="$runtime_dir/transcribe.pid"
+    stream_pid_file="$runtime_dir/stream.pid"
+    parser_pid_file="$runtime_dir/parser.pid"
+    watcher_pid_file="$runtime_dir/watcher.pid"
+    status_file="$runtime_dir/status.json"
+
+    kill_tree() {
+      pid="$1"
+      ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1 || return 0
+      for child in $(${pkgs.procps}/bin/pgrep -P "$pid" 2>/dev/null || true); do
+        kill_tree "$child"
+      done
+      ${pkgs.procps}/bin/kill "$pid" >/dev/null 2>&1 || true
+    }
+
+    kill_pid_file() {
+      pid_file="$1"
+      if [ -s "$pid_file" ]; then
+        kill_tree "$(${pkgs.coreutils}/bin/cat "$pid_file")"
+      fi
+    }
+
+    ${pkgs.coreutils}/bin/mkdir -p "$runtime_dir"
+    kill_pid_file "$record_pid_file"
+    kill_pid_file "$transcribe_pid_file"
+    kill_pid_file "$stream_pid_file"
+    ${pkgs.coreutils}/bin/sleep 0.7
+    kill_pid_file "$parser_pid_file"
+    kill_pid_file "$watcher_pid_file"
+    kill_pid_file "$stream_pid_file"
+    ${pkgs.coreutils}/bin/rm -f "$runtime_dir"/audio.wav "$runtime_dir"/transcript.txt "$runtime_dir"/*.log "$runtime_dir"/stream.out "$record_pid_file" "$transcribe_pid_file" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    ${pkgs.jq}/bin/jq -cn \
+      --arg text "${dictateIcon}" \
+      --arg tooltip "Dictation idle" \
+      --arg class "idle" \
+      '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
+    ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
+    ${pkgs.libnotify}/bin/notify-send -t 2000 "Dictation canceled."
+  '';
+
+  dictateToggle = pkgs.writeShellScriptBin "dictate-toggle" ''
+    set -u
+
+    runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}/dictate"
+    stream_pid_file="$runtime_dir/stream.pid"
+    parser_pid_file="$runtime_dir/parser.pid"
+    watcher_pid_file="$runtime_dir/watcher.pid"
+
+    if [ -s "$stream_pid_file" ] && ${pkgs.procps}/bin/kill -0 "$(${pkgs.coreutils}/bin/cat "$stream_pid_file")" >/dev/null 2>&1; then
+      exec ${dictateStreamStop}/bin/dictate-stream-stop
+    fi
+
+    if [ -s "$parser_pid_file" ] && ${pkgs.procps}/bin/kill -0 "$(${pkgs.coreutils}/bin/cat "$parser_pid_file")" >/dev/null 2>&1; then
+      exec ${dictateStreamStop}/bin/dictate-stream-stop
+    fi
+
+    if [ -s "$watcher_pid_file" ] && ${pkgs.procps}/bin/kill -0 "$(${pkgs.coreutils}/bin/cat "$watcher_pid_file")" >/dev/null 2>&1; then
+      exec ${dictateStreamStop}/bin/dictate-stream-stop
+    fi
+
+    exec ${dictateStreamStart}/bin/dictate-stream-start
+  '';
+
+  dictateModelInstall = pkgs.writeShellScriptBin "dictate-model-install" ''
+    set -eu
+
+    model_dir="$HOME/.local/share/whisper/models"
+    model_file="$model_dir/ggml-base.en.bin"
+    model_url="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"
+
+    ${pkgs.coreutils}/bin/mkdir -p "$model_dir"
+
+    if [ -s "$model_file" ]; then
+      printf '%s\n' "Model already installed: $model_file"
+      exit 0
+    fi
+
+    ${pkgs.curl}/bin/curl -L --fail --progress-bar -o "$model_file.tmp" "$model_url"
+    ${pkgs.coreutils}/bin/mv "$model_file.tmp" "$model_file"
+    printf '%s\n' "Installed model: $model_file"
+  '';
+
   ensureLocalProxyNetwork = pkgs.writeShellScript "ensure-local-proxy-network" ''
     ${pkgs.podman}/bin/podman network exists local-proxy || \
       ${pkgs.podman}/bin/podman network create local-proxy
@@ -209,6 +585,14 @@ in
       calibre
       claude-code
       codex
+      dictateCancel
+      dictateModelInstall
+      dictateStart
+      dictateStatus
+      dictateStop
+      dictateStreamStart
+      dictateStreamStop
+      dictateToggle
       eza
       fd
       filezilla
@@ -228,6 +612,8 @@ in
       toggleCapsEscape
       waybarGammastepStatus
       waybarGammastepToggle
+      whisper-cpp
+      wtype
       yarn
       yazi
       zoxide
@@ -259,6 +645,7 @@ in
         ".local/share/direnv"
         ".local/share/fish"
         ".local/share/password-store"
+        ".local/share/whisper"
         ".local/share/zoxide"
         ".local/state"
         ".mozilla"
@@ -652,6 +1039,7 @@ in
         modules-center = [ "clock" ];
         modules-right = [
           "pulseaudio"
+          "custom/dictate"
           "idle_inhibitor"
           "custom/gammastep"
           "backlight"
@@ -746,6 +1134,15 @@ in
           signal = 1;
         };
 
+        "custom/dictate" = {
+          exec = "${dictateStatus}/bin/dictate-status";
+          return-type = "json";
+          format = "{}";
+          interval = 1;
+          on-click = "${dictateCancel}/bin/dictate-cancel";
+          signal = 2;
+        };
+
         network = {
           interval = 30;
           format-wifi = "󰤨";
@@ -831,10 +1228,12 @@ in
           [
             "output * bg $HOME/.local/share/wallpapers/white.jpg fill"
             "include $HOME/.config/sway/config.local"
+            "bindsym $mod+t exec dictate-toggle"
           ]
           [
             "# Wallpaper is applied after config.local so output geometry is already set."
             "include $HOME/.config/sway/config.local\n${swayWallpaperConfig}"
+            "bindsym $mod+t exec ${dictateToggle}/bin/dictate-toggle"
           ]
           (builtins.readFile ./config/sway/config);
       "sway/config.local".source = ./config/sway/config.local;

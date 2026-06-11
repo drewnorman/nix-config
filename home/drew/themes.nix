@@ -173,6 +173,7 @@ let
     #network,
     #pulseaudio,
     #custom-media,
+    #custom-dictate,
     #custom-gammastep,
     #tray,
     #mode,
@@ -227,6 +228,25 @@ let
 
     #custom-media {
         min-width: 100px;
+    }
+
+    #custom-dictate.idle {
+        color: ${palette.foreground};
+    }
+
+    #custom-dictate.listening {
+        background-color: ${palette.accent};
+        color: ${palette.selectionForeground};
+    }
+
+    #custom-dictate.transcribing {
+        background-color: ${palette.accent};
+        color: ${palette.selectionForeground};
+    }
+
+    #custom-dictate.error {
+        background-color: ${palette.yellow};
+        color: ${palette.selectionForeground};
     }
 
     #temperature.critical {
