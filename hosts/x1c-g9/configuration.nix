@@ -144,7 +144,6 @@
         slurp
         swayidle
         swaylock-effects
-        waybar
         wl-clipboard
         wofi
         xwayland

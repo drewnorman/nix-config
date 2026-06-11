@@ -1,0 +1,39 @@
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "Inconsolata Medium", "Symbols Nerd Font Mono", monospace;
+  font-size: 14px;
+  min-height: 0;
+}
+
+window,
+.bar {
+  background: transparent;
+  color: #d0d0d0;
+}
+
+button,
+menubutton > button {
+  min-height: 30px;
+  min-width: 28px;
+  padding: 0 8px;
+  background: transparent;
+  color: #d0d0d0;
+}
+
+.popover {
+  min-width: 260px;
+  padding: 10px;
+  background: #1c1c1c;
+  color: #d0d0d0;
+  border: 1px solid #d0d0d0;
+}
+
+.workspace.focused,
+.choice.active {
+  box-shadow: inset 0 -2px #5fafd7;
+}
+
+.danger {
+  color: #d7005f;
+}

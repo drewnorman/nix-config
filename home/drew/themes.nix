@@ -48,7 +48,6 @@ let
       white = "#ffffff";
       offWhite = "#fffff0";
       black = "#1c1c1c";
-      waybarChromiumBackground = "#1c1b19";
       lockRing = "005f87";
       lockKey = "008700";
       lockInside = "ffffff88";
@@ -99,7 +98,6 @@ let
       white = "#d0d0d0";
       offWhite = "#eeeeee";
       black = "#1c1c1c";
-      waybarChromiumBackground = "#303030";
       lockRing = "5fafd7";
       lockKey = "afd700";
       lockInside = "00000088";
@@ -110,168 +108,6 @@ let
   };
 
   palette = papercolor.${variant};
-
-  waybarStyle = ''
-    * {
-        border: none;
-        border-radius: 0;
-        font-family: "Inconsolata Medium", "Symbols Nerd Font Mono", monospace;
-        font-size: 14px;
-        min-height: 0;
-    }
-
-    window#waybar {
-        padding: 20px;
-        background-color: transparent;
-        color: ${palette.foreground};
-        transition-property: background-color;
-        transition-duration: .5s;
-    }
-
-    window#waybar.hidden {
-        opacity: 0.2;
-    }
-
-    window#waybar.chromium {
-        background-color: ${palette.waybarChromiumBackground};
-        border: none;
-    }
-
-    #workspaces button {
-        padding: 0 5px;
-        background-color: transparent;
-        color: ${palette.foreground};
-    }
-
-    #workspaces button:hover {
-        background: ${palette.accentTint};
-    }
-
-    #workspaces button.focused {
-        background-color: transparent;
-        color: ${palette.foreground};
-        box-shadow: inset 0 -2px ${palette.accent};
-    }
-
-    #workspaces button.urgent {
-        background-color: ${palette.red};
-        color: ${palette.selectionForeground};
-    }
-
-    #mode {
-        background-color: ${palette.mutedForeground};
-        border-bottom: 3px solid ${palette.border};
-    }
-
-    #clock,
-    #battery,
-    #cpu,
-    #memory,
-    #disk,
-    #temperature,
-    #backlight,
-    #network,
-    #pulseaudio,
-    #custom-media,
-    #custom-dictate,
-    #custom-gammastep,
-    #tray,
-    #mode,
-    #idle_inhibitor,
-    #mpd {
-        padding: 0 10px;
-        color: ${palette.foreground};
-    }
-
-    #clock {
-        color: ${palette.foreground};
-    }
-
-    #window,
-    #workspaces {
-        margin: 0 4px;
-    }
-
-    .modules-left > widget:first-child > #workspaces {
-        margin-left: 0;
-    }
-
-    .modules-right > widget:last-child > #workspaces {
-        margin-right: 0;
-    }
-
-    @keyframes blink {
-        to {
-            background-color: ${palette.selectionBackground};
-            color: ${palette.waybarChromiumBackground};
-        }
-    }
-
-    #battery.critical:not(.charging) {
-        background-color: ${palette.waybarChromiumBackground};
-        color: ${palette.foreground};
-        animation-name: blink;
-        animation-duration: 0.5s;
-        animation-timing-function: linear;
-        animation-iteration-count: infinite;
-        animation-direction: alternate;
-    }
-
-    label:focus {
-        background-color: ${palette.waybarChromiumBackground};
-    }
-
-    #network.disconnected {
-        background-color: ${palette.red};
-        color: ${palette.selectionForeground};
-    }
-
-    #custom-media {
-        min-width: 100px;
-    }
-
-    #custom-dictate.idle {
-        color: ${palette.foreground};
-    }
-
-    #custom-dictate.listening {
-        background-color: ${palette.accent};
-        color: ${palette.selectionForeground};
-    }
-
-    #custom-dictate.transcribing {
-        background-color: ${palette.accent};
-        color: ${palette.selectionForeground};
-    }
-
-    #custom-dictate.error {
-        background-color: ${palette.yellow};
-        color: ${palette.selectionForeground};
-    }
-
-    #temperature.critical {
-        background-color: ${palette.red};
-        color: ${palette.selectionForeground};
-    }
-
-    #mpd.disconnected {
-        background-color: ${palette.red};
-    }
-
-    #mpd.stopped {
-        background-color: ${palette.selectionBackground};
-    }
-
-    #mpd.paused {
-        background-color: ${palette.green};
-    }
-
-    #language {
-        padding: 0 5px;
-        margin: 0 5px;
-        min-width: 16px;
-    }
-  '';
 
   wofiStyle = ''
     @define-color theme_fg_color ${palette.foreground};
@@ -327,6 +163,145 @@ let
       background-color: ${palette.wofiBackground};
       color: ${palette.foreground};
       border-radius: 0px;
+    }
+  '';
+
+  agsStyle = ''
+    * {
+      border: none;
+      border-radius: 0;
+      font-family: "Inconsolata Medium", "Symbols Nerd Font Mono", monospace;
+      font-size: 14px;
+      min-height: 0;
+    }
+
+    window {
+      background: transparent;
+      color: ${palette.foreground};
+    }
+
+    .bar {
+      min-height: 30px;
+      padding: 0 6px;
+      background: transparent;
+      color: ${palette.foreground};
+    }
+
+    .left,
+    .center,
+    .right {
+      min-height: 30px;
+    }
+
+    button,
+    menubutton > button {
+      min-height: 30px;
+      min-width: 28px;
+      padding: 0 8px;
+      background: transparent;
+      color: ${palette.foreground};
+      box-shadow: none;
+    }
+
+    button:hover,
+    menubutton > button:hover {
+      background: ${palette.accentTint};
+    }
+
+    .workspace {
+      min-width: 22px;
+      padding: 0 3px;
+    }
+
+    .workspace.focused {
+      box-shadow: inset 0 -2px ${palette.accent};
+    }
+
+    .clock {
+      font-weight: 500;
+    }
+
+    .popover {
+      min-width: 260px;
+      padding: 10px;
+      background: ${palette.panelBackground};
+      color: ${palette.foreground};
+      border: 1px solid ${palette.border};
+    }
+
+    .section-title {
+      color: ${palette.mutedForeground};
+      font-size: 12px;
+    }
+
+    .row-label {
+      color: ${palette.mutedForeground};
+    }
+
+    .row-value {
+      color: ${palette.foreground};
+    }
+
+    .network-row {
+      padding: 2px 4px;
+      color: ${palette.foreground};
+    }
+
+    .network-row.active {
+      background: ${palette.accentTint};
+    }
+
+    .network-lock {
+      min-width: 14px;
+      color: ${palette.mutedForeground};
+    }
+
+    .choice {
+      min-height: 28px;
+      padding: 0 6px;
+    }
+
+    .choice.active {
+      background: ${palette.accentTint};
+    }
+
+    .danger {
+      color: ${palette.red};
+    }
+
+    .dictation.listening {
+      background: ${palette.accent};
+      color: ${palette.selectionForeground};
+    }
+
+    .dictation.transcribing {
+      background: ${palette.green};
+      color: ${palette.selectionForeground};
+    }
+
+    .dictation.typing {
+      background: ${palette.orange};
+      color: ${palette.selectionForeground};
+    }
+
+    .dictation.error {
+      background: ${palette.yellow};
+      color: ${palette.selectionForeground};
+    }
+
+    scale trough {
+      min-height: 4px;
+      background: ${palette.mutedBackground};
+    }
+
+    scale highlight {
+      background: ${palette.accent};
+    }
+
+    scale slider {
+      min-width: 12px;
+      min-height: 12px;
+      background: ${palette.foreground};
     }
   '';
 
@@ -542,8 +517,8 @@ palette
 
   inherit
     makoConfig
+    agsStyle
     tmuxTheme
-    waybarStyle
     wofiStyle
     yaziTheme
     ;

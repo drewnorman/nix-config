@@ -42,6 +42,84 @@ let
           magick "$TMPDIR/$theme-canvas.jpg" -crop 1920x1080+3840+0 "$out/$theme/DP-2.jpg"
         done
       '';
+  agsConfig = pkgs.runCommand "drew-ags-config" { } ''
+    mkdir -p "$out"
+    cp ${./config/ags/app.tsx} "$out/app.tsx"
+    cp ${./config/ags/Bar.tsx} "$out/Bar.tsx"
+    cp ${pkgs.writeText "drew-ags-style.scss" theme.agsStyle} "$out/style.scss"
+  '';
+  swayWorkspaceState = pkgs.writeShellApplication {
+    name = "sway-workspace-state";
+    runtimeInputs = with pkgs; [
+      jq
+      sway
+    ];
+    text = ''
+      output="''${1:-}"
+
+      case "$output" in
+        eDP-1) slots="1 4 7 10" ;;
+        HDMI-A-1) slots="2 5 8" ;;
+        DP-2) slots="3 6 9" ;;
+        *)
+          printf '[]\n'
+          exit 0
+          ;;
+      esac
+
+      last_state=""
+
+      emit() {
+        workspaces="$(swaymsg -t get_workspaces 2>/dev/null || printf '[]')"
+
+        state="$(jq -cn \
+          --arg output "$output" \
+          --arg slots "$slots" \
+          --argjson workspaces "$workspaces" \
+          '
+          def slotnums: $slots | split(" ") | map(tonumber);
+
+          [
+            slotnums[] as $num |
+            ($workspaces | map(select(.num == $num and .output == $output)) | .[0] // null) as $ws |
+            (($ws != null) and ($ws.visible // false)) as $active |
+            (($ws != null) and (($ws.representation // "") != "")) as $non_empty |
+            select($active or $non_empty) |
+            {
+              num: $num,
+              name: ($ws.name // ($num | tostring)),
+              active: $active,
+              visible: ($ws.visible // false),
+              focused: ($ws.focused // false),
+              urgent: ($ws.urgent // false),
+              current_workspace: $active,
+              non_empty: $non_empty
+            }
+          ]
+          '
+        )"
+
+        if [ "$state" != "$last_state" ]; then
+          printf '%s\n' "$state"
+          last_state="$state"
+        fi
+      }
+
+      emit
+
+      swaymsg -m -t subscribe '["workspace","window","output"]' 2>/dev/null | while IFS= read -r _event; do
+        emit
+      done &
+      subscriber_pid="$!"
+
+      trap 'kill "$subscriber_pid" 2>/dev/null || true' EXIT
+
+      while true; do
+        sleep 0.5
+        emit
+      done
+    '';
+  };
   swayWallpaperConfig = ''
     output eDP-1 bg $HOME/.local/share/wallpapers/${theme.id}/eDP-1.jpg fill
     output HDMI-A-1 bg $HOME/.local/share/wallpapers/${theme.id}/HDMI-A-1.jpg fill
@@ -167,7 +245,6 @@ let
     fi
 
     ${pkgs.coreutils}/bin/sleep 0.5
-    ${pkgs.procps}/bin/pkill -RTMIN+1 waybar >/dev/null 2>&1 || true
   '';
 
   dictateStatus = pkgs.writeShellScriptBin "dictate-status" ''
@@ -207,7 +284,6 @@ let
         --arg tooltip "$2" \
         --arg class "$3" \
         '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
-      ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
     }
 
     is_alive() {
@@ -421,7 +497,6 @@ let
         --arg tooltip "$2" \
         --arg class "$3" \
         '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
-      ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
     }
 
     kill_tree() {
@@ -499,7 +574,6 @@ let
       --arg tooltip "Dictation idle" \
       --arg class "idle" \
       '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
-    ${pkgs.procps}/bin/pkill -RTMIN+2 waybar >/dev/null 2>&1 || true
     ${pkgs.libnotify}/bin/notify-send -t 2000 "Dictation canceled."
   '';
 
@@ -565,6 +639,7 @@ in
 
 {
   imports = [
+    inputs.ags.homeManagerModules.default
     ./modules/neovim.nix
   ];
 
@@ -582,6 +657,7 @@ in
       airpodsDisconnect
       bat
       bitwarden-cli
+      brightnessctl
       calibre
       claude-code
       codex
@@ -608,10 +684,11 @@ in
       pandoc
       php
       phpPackages.composer
+      swayWorkspaceState
       taskwarrior3
       toggleCapsEscape
-      waybarGammastepStatus
       waybarGammastepToggle
+      waybarGammastepStatus
       whisper-cpp
       wtype
       yarn
@@ -1026,162 +1103,33 @@ in
 
   programs.lazygit.enable = true;
 
-  programs.waybar = {
+  programs.ags = {
     enable = true;
-    style = theme.waybarStyle;
-    settings = {
-      mainBar = {
-        height = 30;
-        modules-left = [
-          "sway/workspaces"
-          "sway/window"
-        ];
-        modules-center = [ "clock" ];
-        modules-right = [
-          "pulseaudio"
-          "custom/dictate"
-          "idle_inhibitor"
-          "custom/gammastep"
-          "backlight"
-          "network"
-          "cpu"
-          "memory"
-          "temperature"
-          "battery"
-        ];
-
-        "sway/window".max-length = 70;
-
-        clock = {
-          tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>";
-          format = "{:%a %b %d %H:%M:%S}";
-          interval = 1;
-        };
-
-        cpu = {
-          format = "󰻠";
-          tooltip-format = "{usage}% CPU";
-        };
-
-        memory = {
-          format = "󰍛";
-          tooltip-format = "{percentage}% memory";
-        };
-
-        temperature = {
-          critical-threshold = 80;
-          format = "{icon}";
-          format-icons = [
-            "󰔏"
-            "󱃂"
-            "󰈸"
-          ];
-          tooltip-format = "{temperatureC}°C";
-        };
-
-        battery = {
-          bat = "BAT0";
-          adapter = "AC";
-          bat-compatibility = true;
-          interval = 30;
-          states = {
-            warning = 30;
-            critical = 15;
-          };
-          format = "{icon}";
-          format-charging = "󰂄";
-          format-plugged = "󰚥";
-          format-icons = [
-            "󰁺"
-            "󰁼"
-            "󰁾"
-            "󰂀"
-            "󰁹"
-          ];
-          tooltip-format = "{capacity}%";
-          tooltip-format-discharging = "{capacity}%\n{time} remaining";
-          tooltip-format-charging = "{capacity}%\n{time} to full";
-        };
-
-        backlight = {
-          device = "intel_backlight";
-          format = "{icon}";
-          format-icons = [
-            "󰃞"
-            "󰃟"
-            "󰃠"
-          ];
-          scroll-step = 5;
-          tooltip-format = "{percent}% brightness";
-        };
-
-        idle_inhibitor = {
-          format = "{icon}";
-          format-icons = {
-            activated = "󰅶";
-            deactivated = "󰾪";
-          };
-          tooltip-format-activated = "Idle inhibitor active";
-          tooltip-format-deactivated = "Idle inhibitor inactive";
-        };
-
-        "custom/gammastep" = {
-          exec = "${waybarGammastepStatus}/bin/waybar-gammastep-status";
-          return-type = "json";
-          format = "{}";
-          interval = 10;
-          on-click = "${waybarGammastepToggle}/bin/waybar-gammastep-toggle";
-          signal = 1;
-        };
-
-        "custom/dictate" = {
-          exec = "${dictateStatus}/bin/dictate-status";
-          return-type = "json";
-          format = "{}";
-          interval = 1;
-          on-click = "${dictateCancel}/bin/dictate-cancel";
-          signal = 2;
-        };
-
-        network = {
-          interval = 30;
-          format-wifi = "󰤨";
-          tooltip-format-wifi = "{essid} ({signalStrength}%)";
-          format-ethernet = "󰈀";
-          tooltip-format-ethernet = "{ifname}: {ipaddr}/{cidr}";
-          format-linked = "(No IP) 󰈀";
-          tooltip-format-linked = "{ifname} (No IP)";
-          format-disconnected = "󰤭";
-          tooltip-format-disconnected = "Disconnected";
-        };
-
-        pulseaudio = {
-          format = "{icon}";
-          format-bluetooth = "{icon}󰂯";
-          format-bluetooth-muted = "󰖁 {icon}󰂯";
-          format-muted = "󰖁 ";
-          format-source = "󰍬";
-          format-source-muted = "󰍭";
-          format-icons = {
-            headphone = "󰋋";
-            hands-free = "󰋎";
-            headset = "󰋎";
-            phone = "󰏲";
-            portable = "󰏲";
-            car = "󰄋";
-            default = [
-              "󰕿"
-              "󰖀"
-              "󰕾"
-            ];
-          };
-          tooltip-format = "{desc}: {volume}%";
-          tooltip-format-muted = "{desc}: muted";
-          on-click = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-          on-click-right = "${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle";
-        };
-      };
-    };
+    configDir = agsConfig;
+    systemd.enable = true;
+    extraPackages =
+      with inputs.astal.packages.${pkgs.stdenv.hostPlatform.system};
+      [
+        battery
+        brightness
+        network
+        wireplumber
+      ]
+      ++ (with pkgs; [
+        bash
+        brightnessctl
+        coreutils
+        gawk
+        gammastep
+        gnused
+        iproute2
+        jq
+        procps
+        pulseaudio
+        sway
+        systemd
+        wireplumber
+      ]);
   };
 
   programs.yazi = {
@@ -1229,11 +1177,13 @@ in
             "output * bg $HOME/.local/share/wallpapers/white.jpg fill"
             "include $HOME/.config/sway/config.local"
             "bindsym $mod+t exec dictate-toggle"
+            "bar {\n    swaybar_command waybar\n}"
           ]
           [
             "# Wallpaper is applied after config.local so output geometry is already set."
             "include $HOME/.config/sway/config.local\n${swayWallpaperConfig}"
             "bindsym $mod+t exec ${dictateToggle}/bin/dictate-toggle"
+            "# Top bar is provided by AGS."
           ]
           (builtins.readFile ./config/sway/config);
       "sway/config.local".source = ./config/sway/config.local;
