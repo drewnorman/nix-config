@@ -40,6 +40,16 @@ return {
             pcall(vim.api.nvim_set_hl, 0, "ColorColumn", { bg = "lightgrey" })
         else
             pcall(vim.api.nvim_set_hl, 0, "ColorColumn", { bg = "#303030" })
+            pcall(vim.api.nvim_set_hl, 0, "Comment", { fg = "#b0b0b0", italic = true })
+            pcall(vim.api.nvim_set_hl, 0, "LineNr", { fg = "#a8a8a8", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "CursorLineNr", { fg = "#e0e0e0", bg = "NONE", bold = true })
+            pcall(vim.api.nvim_set_hl, 0, "NonText", { fg = "#8a8a8a", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "EndOfBuffer", { fg = "#6f6f6f", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "WinSeparator", { fg = "#7a7a7a", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "FoldColumn", { fg = "#a8a8a8", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "SignColumn", { fg = "#a8a8a8", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "NormalFloat", { fg = "#e0e0e0", bg = "NONE" })
+            pcall(vim.api.nvim_set_hl, 0, "FloatBorder", { fg = "#8a8a8a", bg = "NONE" })
         end
     end,
 }
