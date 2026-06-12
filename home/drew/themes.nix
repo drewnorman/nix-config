@@ -63,23 +63,23 @@ let
       wallpaper = "papercolor-dark.jpg";
       wallpaperColorize = {
         color = "black";
-        amount = 0;
+        amount = 40;
       };
-      alacrittyOpacity = 0.75;
-      background = "#1c1c1c";
-      wofiBackground = "rgba(28, 28, 28, 0.84)";
+      alacrittyOpacity = 0.5;
+      background = "#101010";
+      wofiBackground = "rgba(16, 16, 16, 0.9)";
       wofiSelectionBackground = "rgba(208, 208, 208, 0.88)";
       foreground = "#d0d0d0";
       cursorText = "#1c1c1c";
       selectionBackground = "#d0d0d0";
       selectionForeground = "#1c1c1c";
-      statusBackground = "#303030";
-      tmuxInactivePaneBackground = "#151515";
-      panelBackground = "#1c1c1c";
-      mutedBackground = "#3a3a3a";
-      subtleBackground = "#585858";
-      mutedForeground = "#808080";
-      statusForeground = "#d0d0d0";
+      statusBackground = "#242424";
+      tmuxInactivePaneBackground = "#080808";
+      panelBackground = "#101010";
+      mutedBackground = "#282828";
+      subtleBackground = "#5a5a5a";
+      mutedForeground = "#a8a8a8";
+      statusForeground = "#e0e0e0";
       border = "#d0d0d0";
       accent = "#5fafd7";
       accentAlt = "#0087af";
@@ -97,7 +97,7 @@ let
       brightRed = "#df005f";
       white = "#d0d0d0";
       offWhite = "#eeeeee";
-      black = "#1c1c1c";
+      black = "#101010";
       lockRing = "5fafd7";
       lockKey = "afd700";
       lockInside = "00000088";
@@ -323,7 +323,7 @@ let
     # pane borders
     set -g pane-border-style "fg=${palette.subtleBackground}"
     set -g pane-active-border-style "fg=${palette.accent}"
-    set -g window-style "bg=${palette.tmuxInactivePaneBackground}"
+    set -g window-style "bg=default,fg=${palette.foreground}"
     set -g window-active-style "bg=default"
 
     # status bar
