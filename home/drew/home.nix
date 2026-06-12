@@ -8,6 +8,11 @@
 let
   variant = import ./theme-variant.nix;
   theme = import ./themes.nix { inherit variant; };
+  isDark = theme.variant == "dark";
+  gtkColorScheme = if isDark then "prefer-dark" else "default";
+  gtkThemeName = if isDark then "Adwaita-dark" else "Adwaita";
+  gtkThemeEnv = if isDark then "Adwaita:dark" else "Adwaita";
+  firefoxDarkMode = if isDark then 1 else 0;
   papercolorLightTheme = import ./themes.nix { variant = "light"; };
   papercolorDarkTheme = import ./themes.nix { variant = "dark"; };
   wallpaperFallback = ./assets/wallpapers/white.jpg;
@@ -125,6 +130,177 @@ let
     output HDMI-A-1 bg $HOME/.local/share/wallpapers/${theme.id}/HDMI-A-1.jpg fill
     output DP-2 bg $HOME/.local/share/wallpapers/${theme.id}/DP-2.jpg fill
   '';
+  refreshThemeSession = pkgs.writeShellApplication {
+    name = "drew-refresh-theme-session";
+    runtimeInputs = with pkgs; [
+      bash
+      coreutils
+      dbus
+      glib
+      procps
+      sway
+      systemd
+      tmux
+      util-linux
+    ];
+    text = ''
+      set -u
+
+      variant="${theme.variant}"
+      theme_id="${theme.id}"
+      theme_name="${theme.name}"
+      refresh_signature="$variant:$theme_id:5"
+      gtk_theme="${gtkThemeName}"
+      gtk_color_scheme="${gtkColorScheme}"
+      gtk_theme_env="${gtkThemeEnv}"
+
+      export XDG_RUNTIME_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}"
+      export DBUS_SESSION_BUS_ADDRESS="''${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}"
+      export DREW_THEME="$theme_id"
+      export DREW_THEME_NAME="$theme_name"
+      export DREW_THEME_VARIANT="$variant"
+      export GTK_THEME="$gtk_theme_env"
+
+      state_dir="$HOME/.local/state"
+      state_file="$state_dir/drew-theme"
+      session_state_file="$state_dir/drew-theme-session"
+      old_variant=""
+      old_refresh_signature=""
+
+      if [ -r "$state_file" ]; then
+        old_variant="$(${pkgs.coreutils}/bin/cat "$state_file" 2>/dev/null || true)"
+      fi
+      if [ -r "$session_state_file" ]; then
+        old_refresh_signature="$(${pkgs.coreutils}/bin/cat "$session_state_file" 2>/dev/null || true)"
+      elif [ -n "$old_variant" ]; then
+        old_refresh_signature="$old_variant"
+      fi
+
+      ${pkgs.coreutils}/bin/mkdir -p "$state_dir"
+      ${pkgs.coreutils}/bin/printf '%s\n' "$variant" > "$state_file"
+      ${pkgs.coreutils}/bin/printf '%s\n' "$refresh_signature" > "$session_state_file"
+
+      if [ -z "''${SWAYSOCK:-}" ]; then
+        for candidate in "$XDG_RUNTIME_DIR"/sway-ipc.*.sock; do
+          if [ -S "$candidate" ]; then
+            export SWAYSOCK="$candidate"
+            break
+          fi
+        done
+      fi
+
+      has_user_bus=0
+      if [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+        has_user_bus=1
+      fi
+
+      has_sway=0
+      if [ -n "''${SWAYSOCK:-}" ] && ${pkgs.sway}/bin/swaymsg -t get_version >/dev/null 2>&1; then
+        has_sway=1
+      fi
+
+      if [ "$has_user_bus" -eq 1 ]; then
+        ${pkgs.dbus}/bin/dbus-update-activation-environment --systemd \
+          DREW_THEME DREW_THEME_NAME DREW_THEME_VARIANT GTK_THEME \
+          XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE \
+          WAYLAND_DISPLAY SWAYSOCK DISPLAY DBUS_SESSION_BUS_ADDRESS \
+          >/dev/null 2>&1 || true
+
+        ${pkgs.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme "$gtk_color_scheme" >/dev/null 2>&1 || true
+        ${pkgs.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme" >/dev/null 2>&1 || true
+      fi
+
+      if [ "$has_sway" -eq 1 ]; then
+        ${pkgs.sway}/bin/swaymsg reload >/dev/null 2>&1 || true
+        ${pkgs.sway}/bin/swaymsg exec "${pkgs.tmux}/bin/tmux source-file '$HOME/.config/tmux/tmux.conf'" >/dev/null 2>&1 || true
+      fi
+
+      if ${pkgs.tmux}/bin/tmux has-session >/dev/null 2>&1; then
+        ${pkgs.tmux}/bin/tmux source-file "$HOME/.config/tmux/tmux.conf" >/dev/null 2>&1 || true
+      fi
+
+      if [ "$old_refresh_signature" = "$refresh_signature" ]; then
+        exit 0
+      fi
+
+      user_systemctl() {
+        if [ "$has_user_bus" -eq 1 ]; then
+          ${pkgs.systemd}/bin/systemctl --user "$@" >/dev/null 2>&1 || true
+        fi
+      }
+
+      delayed_user_unit() {
+        unit="$1"
+        command="$2"
+
+        if [ "$has_user_bus" -ne 1 ]; then
+          return 0
+        fi
+
+        env_args=(
+          "--setenv=XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
+          "--setenv=DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
+          "--setenv=GTK_THEME=$GTK_THEME"
+          "--setenv=DREW_THEME=$DREW_THEME"
+          "--setenv=DREW_THEME_NAME=$DREW_THEME_NAME"
+          "--setenv=DREW_THEME_VARIANT=$DREW_THEME_VARIANT"
+        )
+
+        if [ -n "''${SWAYSOCK:-}" ]; then
+          env_args+=("--setenv=SWAYSOCK=$SWAYSOCK")
+        fi
+        if [ -n "''${WAYLAND_DISPLAY:-}" ]; then
+          env_args+=("--setenv=WAYLAND_DISPLAY=$WAYLAND_DISPLAY")
+        fi
+        if [ -n "''${DISPLAY:-}" ]; then
+          env_args+=("--setenv=DISPLAY=$DISPLAY")
+        fi
+
+        ${pkgs.systemd}/bin/systemd-run --user --collect --quiet \
+          --unit="$unit" \
+          "''${env_args[@]}" \
+          ${pkgs.bash}/bin/bash -lc "$command" \
+          >/dev/null 2>&1 || true
+      }
+
+      async_command() {
+        unit="$1"
+        command="$2"
+
+        if [ "$has_user_bus" -eq 1 ]; then
+          delayed_user_unit "$unit" "$command"
+        else
+          ${pkgs.util-linux}/bin/setsid -f ${pkgs.bash}/bin/bash -lc "$command" >/dev/null 2>&1 || true
+        fi
+      }
+
+      user_systemctl try-restart ags.service
+      user_systemctl try-restart xdg-desktop-portal.service
+      user_systemctl try-restart xdg-desktop-portal-gtk.service
+      user_systemctl try-restart xdg-desktop-portal-wlr.service
+
+      if ${pkgs.procps}/bin/pgrep -x mako >/dev/null 2>&1; then
+        ${pkgs.procps}/bin/pkill -TERM -x mako >/dev/null 2>&1 || true
+        if [ "$has_sway" -eq 1 ]; then
+          ${pkgs.sway}/bin/swaymsg exec ${pkgs.mako}/bin/mako >/dev/null 2>&1 || true
+        else
+          ${pkgs.util-linux}/bin/setsid -f ${pkgs.mako}/bin/mako >/dev/null 2>&1 || true
+        fi
+      fi
+
+      stamp="$(${pkgs.coreutils}/bin/date +%s)"
+
+      if [ "$has_sway" -eq 1 ] && ${pkgs.procps}/bin/pgrep -x firefox >/dev/null 2>&1; then
+        async_command "drew-theme-restart-firefox-$stamp" \
+          '${pkgs.procps}/bin/pkill -TERM -x firefox >/dev/null 2>&1 || true; for _ in 1 2 3 4 5; do ${pkgs.procps}/bin/pgrep -x firefox >/dev/null 2>&1 || break; sleep 1; done; ${pkgs.sway}/bin/swaymsg exec ${pkgs.firefox}/bin/firefox >/dev/null 2>&1 || true'
+      fi
+
+      if [ "$has_sway" -eq 1 ] && ${pkgs.procps}/bin/pgrep -x chromium >/dev/null 2>&1; then
+        async_command "drew-theme-restart-chromium-$stamp" \
+          '${pkgs.procps}/bin/pkill -TERM -x chromium >/dev/null 2>&1 || true; for _ in 1 2 3 4 5; do ${pkgs.procps}/bin/pgrep -x chromium >/dev/null 2>&1 || break; sleep 1; done; ${pkgs.sway}/bin/swaymsg exec ${pkgs.chromium}/bin/chromium >/dev/null 2>&1 || true'
+      fi
+    '';
+  };
   dictateIcon = "󰔊";
 
   airpodsConnect = pkgs.writeShellScriptBin "airpods-connect" ''
@@ -651,6 +827,7 @@ in
       DREW_THEME = theme.id;
       DREW_THEME_NAME = theme.name;
       DREW_THEME_VARIANT = theme.variant;
+      GTK_THEME = gtkThemeEnv;
     };
     packages = with pkgs; [
       airpodsConnect
@@ -798,6 +975,7 @@ in
     user_pref("privacy.clearOnShutdown.offlineApps", false);
     user_pref("privacy.clearOnShutdown_v2.cookiesAndStorage", false);
     user_pref("privacy.sanitize.pending", "[]");
+    user_pref("ui.systemUsesDarkTheme", ${toString firefoxDarkMode});
   '';
 
   home.pointerCursor = {
@@ -807,6 +985,25 @@ in
     size = 20;
     gtk.enable = true;
     x11.enable = true;
+  };
+
+  dconf = {
+    enable = true;
+    settings."org/gnome/desktop/interface" = {
+      color-scheme = gtkColorScheme;
+      gtk-theme = gtkThemeName;
+    };
+  };
+
+  gtk = {
+    enable = true;
+    theme = {
+      name = gtkThemeName;
+      package = pkgs.gnome-themes-extra;
+    };
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = isDark;
+    gtk4.theme = null;
+    gtk4.extraConfig.gtk-application-prefer-dark-theme = isDark;
   };
 
   programs.alacritty = {
@@ -926,8 +1123,8 @@ in
     fi
   '';
 
-  home.activation.writeThemeState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
-    $DRY_RUN_CMD printf '%s\n' "${theme.variant}" > "$HOME/.local/state/drew-theme"
+  home.activation.refreshThemeSession = config.lib.dag.entryAfter [ "linkGeneration" ] ''
+    run ${refreshThemeSession}/bin/drew-refresh-theme-session
   '';
 
   programs.fish = {

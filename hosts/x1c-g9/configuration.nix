@@ -117,6 +117,7 @@
         DefaultCookiesSetting = 1;
       };
     };
+    dconf.enable = true;
     firefox.enable = true;
     git.enable = true;
     nh = {
@@ -159,10 +160,16 @@
       xdg-desktop-portal-gtk
       xdg-desktop-portal-wlr
     ];
-    config.common.default = [
-      "wlr"
-      "gtk"
-    ];
+    config = {
+      common = {
+        default = [
+          "wlr"
+          "gtk"
+        ];
+        "org.freedesktop.impl.portal.Settings" = "gtk";
+      };
+      sway."org.freedesktop.impl.portal.Settings" = "gtk";
+    };
   };
 
   systemd.coredump.settings.Coredump = {
