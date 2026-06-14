@@ -37,6 +37,8 @@
 
     fstrim.enable = true;
     fwupd.enable = true;
+    gnome.gcr-ssh-agent.enable = false;
+    gnome.gnome-keyring.enable = true;
     libinput.enable = true;
     resolved.enable = true;
     tailscale.enable = true;
@@ -166,6 +168,7 @@
           "wlr"
           "gtk"
         ];
+        "org.freedesktop.impl.portal.Secret" = [ "gnome-keyring" ];
         "org.freedesktop.impl.portal.Settings" = "gtk";
       };
       sway."org.freedesktop.impl.portal.Settings" = "gtk";

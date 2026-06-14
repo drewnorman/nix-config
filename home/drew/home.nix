@@ -1,6 +1,7 @@
 {
   config,
   inputs,
+  lib,
   pkgs,
   ...
 }:
@@ -1334,6 +1335,15 @@ in
     enableFishIntegration = true;
     shellWrapperName = "yy";
   };
+
+  services.gnome-keyring = {
+    enable = true;
+    components = [ "secrets" ];
+  };
+
+  systemd.user.services.gnome-keyring.Service.ExecStart = lib.mkForce (
+    "/run/wrappers/bin/gnome-keyring-daemon --start --foreground --components=secrets"
+  );
 
   services.gammastep = {
     enable = true;
