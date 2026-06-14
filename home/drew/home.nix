@@ -76,18 +76,31 @@ let
       last_state=""
 
       emit() {
+        outputs="$(swaymsg -t get_outputs 2>/dev/null || printf '[]')"
         workspaces="$(swaymsg -t get_workspaces 2>/dev/null || printf '[]')"
 
         state="$(jq -cn \
           --arg output "$output" \
           --arg slots "$slots" \
+          --argjson outputs "$outputs" \
           --argjson workspaces "$workspaces" \
           '
+          def slot_output($num):
+            if ($num == 1 or $num == 4 or $num == 7 or $num == 10) then "eDP-1"
+            elif ($num == 2 or $num == 5 or $num == 8) then "HDMI-A-1"
+            else "DP-2"
+            end;
+
           def slotnums: $slots | split(" ") | map(tonumber);
+          def active_outputs: $outputs | map(select(.active // false) | .name);
+          def first_active_output: active_outputs | .[0] // $output;
 
           [
-            slotnums[] as $num |
-            ($workspaces | map(select(.num == $num and .output == $output)) | .[0] // null) as $ws |
+            ((slotnums + [1,2,3,4,5,6,7,8,9,10]) | unique[]) as $num |
+            (slot_output($num)) as $slot_output |
+            (active_outputs | index($slot_output) != null) as $slot_output_active |
+            select($slot_output == $output or (($slot_output_active | not) and $output == first_active_output)) |
+            ($workspaces | map(select(.num == $num and (.output == $output or .output == $slot_output))) | .[0] // null) as $ws |
             (($ws != null) and ($ws.visible // false)) as $active |
             (($ws != null) and (($ws.representation // "") != "")) as $non_empty |
             select($active or $non_empty) |
