@@ -51,6 +51,22 @@ const run = async (cmd: string) => {
   }
 }
 
+const monitorName = (monitor: Gdk.Monitor) => {
+  const geometry = monitor.geometry
+  const geometryName = `${geometry.x},${geometry.y}-${geometry.width}x${geometry.height}`
+
+  switch (geometryName) {
+    case "0,0-1920x1200":
+      return "eDP-1"
+    case "1920,0-1920x1080":
+      return "HDMI-A-1"
+    case "3840,0-1920x1080":
+      return "DP-2"
+    default:
+      return monitor.connector || geometryName
+  }
+}
+
 const parseArray = <T,>(raw: string): Array<T> => {
   try {
     const value = JSON.parse(raw)
@@ -428,6 +444,7 @@ function Dictation() {
 export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
   let win: Astal.Window
   const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
+  const connector = monitorName(gdkmonitor)
 
   onCleanup(() => {
     win.destroy()
@@ -438,7 +455,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       $={(self) => (win = self)}
       visible
       namespace="drew-top-bar"
-      name={`bar-${gdkmonitor.connector}`}
+      name={`bar-${connector}`}
       gdkmonitor={gdkmonitor}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       anchor={TOP | LEFT | RIGHT}
@@ -446,7 +463,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
     >
       <centerbox class="bar">
         <box $type="start" class="left" spacing={0}>
-          <Workspaces connector={gdkmonitor.connector} />
+          <Workspaces connector={connector} />
         </box>
         <box $type="center" class="center">
           <Clock />

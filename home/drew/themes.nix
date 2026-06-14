@@ -323,8 +323,6 @@ let
     # pane borders
     set -g pane-border-style "fg=${palette.subtleBackground}"
     set -g pane-active-border-style "fg=${palette.accent}"
-    set -g window-style "bg=default,fg=${palette.foreground}"
-    set -g window-active-style "bg=default"
 
     # status bar
     set -g status on
