@@ -145,14 +145,16 @@ function ToolButton({
 function Row({
   label,
   value,
+  valueMaxWidthChars = 80,
 }: {
   label: string
   value: any
+  valueMaxWidthChars?: number
 }) {
   return (
     <box class="row" spacing={10}>
       <label class="row-label" xalign={0} label={label} />
-      <label class="row-value" xalign={1} hexpand label={value} />
+      <label class="row-value" xalign={1} hexpand ellipsize={3} maxWidthChars={valueMaxWidthChars} label={value} />
     </box>
   )
 }
@@ -264,11 +266,11 @@ function AudioContent() {
           onChangeValue={({ value }) => speaker?.set_volume(value)}
         />
       </box>
-      <Row label="Default" value={defaultSinkLabel} />
+      <Row label="Default" value={defaultSinkLabel} valueMaxWidthChars={32} />
       <For each={sinks((raw) => parseArray<AudioDevice>(raw))}>
         {(sink) => (
           <button class={sink.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-sink ${JSON.stringify(sink.name)}`)}>
-            <label xalign={0} label={`${sink.active ? "* " : ""}${sink.description}`} />
+            <label xalign={0} ellipsize={3} maxWidthChars={34} label={`${sink.active ? "* " : ""}${sink.description}`} />
           </button>
         )}
       </For>
@@ -282,11 +284,11 @@ function AudioContent() {
           <label label="Mute" />
         </button>
       </box>
-      <Row label="Default" value={defaultSourceLabel} />
+      <Row label="Default" value={defaultSourceLabel} valueMaxWidthChars={32} />
       <For each={sources((raw) => parseArray<AudioDevice>(raw))}>
         {(source) => (
           <button class={source.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-source ${JSON.stringify(source.name)}`)}>
-            <label xalign={0} label={`${source.active ? "* " : ""}${source.description}`} />
+            <label xalign={0} ellipsize={3} maxWidthChars={34} label={`${source.active ? "* " : ""}${source.description}`} />
           </button>
         )}
       </For>
@@ -561,7 +563,6 @@ function DictationContent() {
   return (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
       <box class={stateClass((klass) => `dictation-state ${klass}`)} orientation={Gtk.Orientation.VERTICAL} spacing={2}>
-        <label class="section-title" xalign={0} label="Transcription state" />
         <label class="dictation-state-label" xalign={0} label={stateLabel} />
         <label class="dictation-state-detail" xalign={0} wrap label={details} />
       </box>
