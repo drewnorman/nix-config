@@ -232,6 +232,14 @@ let
     .popover button {
       min-height: 24px;
       padding: 0 6px;
+      border: 1px solid ${palette.mutedForeground};
+      background: ${palette.mutedBackground};
+      color: ${palette.foreground};
+    }
+
+    .popover button:hover {
+      border-color: ${palette.accent};
+      background: ${palette.subtleBackground};
     }
 
     .clickout,
@@ -249,6 +257,12 @@ let
       font-size: 12px;
     }
 
+    .row {
+      min-height: 24px;
+      padding: 0 6px;
+      background: transparent;
+    }
+
     .row-label {
       color: ${palette.mutedForeground};
     }
@@ -260,6 +274,7 @@ let
     .network-row {
       padding: 2px 4px;
       color: ${palette.foreground};
+      background: transparent;
     }
 
     .network-row.active {
@@ -274,10 +289,29 @@ let
     .choice {
       min-height: 24px;
       padding: 0 6px;
+      border: 1px solid ${palette.mutedForeground};
+      background: ${palette.mutedBackground};
+      color: ${palette.foreground};
+    }
+
+    .choice:hover {
+      border-color: ${palette.accent};
+      background: ${palette.subtleBackground};
     }
 
     .choice.active {
       background: ${palette.accentTint};
+      border-color: ${palette.accent};
+    }
+
+    .readonly-choice {
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .readonly-choice:hover {
+      border-color: transparent;
+      background: transparent;
     }
 
     .danger {
@@ -286,7 +320,7 @@ let
 
     .dictation-state {
       padding: 6px;
-      background: ${palette.mutedBackground};
+      background: transparent;
       border-left: 3px solid ${palette.border};
     }
 
