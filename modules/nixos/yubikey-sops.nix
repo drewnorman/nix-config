@@ -80,6 +80,7 @@ in
   environment.systemPackages = with pkgs; [
     age
     gnupg
+    libfido2
     pam_u2f
     pcsc-tools
     pinentry-curses
@@ -87,6 +88,7 @@ in
   ];
 
   services.udev.packages = with pkgs; [
+    libfido2
     yubikey-personalization
   ];
 
