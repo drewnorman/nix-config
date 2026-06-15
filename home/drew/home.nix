@@ -1322,6 +1322,7 @@ in
       with inputs.astal.packages.${pkgs.stdenv.hostPlatform.system};
       [
         battery
+        bluetooth
         brightness
         network
         wireplumber

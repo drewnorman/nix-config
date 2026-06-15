@@ -3,6 +3,7 @@ import app from "ags/gtk4/app"
 import { createSubprocess, exec, execAsync, subprocess } from "ags/process"
 import { createPoll } from "ags/time"
 import Astal from "gi://Astal?version=4.0"
+import AstalBluetooth from "gi://AstalBluetooth"
 import AstalNetwork from "gi://AstalNetwork"
 import AstalWp from "gi://AstalWp"
 import Gdk from "gi://Gdk?version=4.0"
@@ -18,6 +19,11 @@ type AudioDevice = {
 type WifiNetwork = {
   ssid: string
   locked: boolean
+  connected: boolean
+}
+
+type BluetoothDevice = {
+  name: string
   connected: boolean
 }
 
@@ -37,13 +43,23 @@ type WorkspaceSlot = {
   urgent?: boolean
 }
 
-type PopupName = "" | "clock" | "network" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
+type PopupName = "" | "clock" | "network" | "bluetooth" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
 
 const sh = (cmd: string) => `bash -lc ${JSON.stringify(cmd)}`
 const profileBin = "/etc/profiles/per-user/drew/bin"
 const command = (name: string) => `${profileBin}/${name}`
 const dictateIcon = ""
 const iwdStationPath = "busctl tree net.connman.iwd 2>/dev/null | awk '/\\/net\\/connman\\/iwd\\/[0-9]+\\/[0-9]+$/ { print $NF; exit }'"
+const bluetoothDevicesCommand =
+  "objects=$(busctl --json=short call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects 2>/dev/null || true); if [ -z \"$objects\" ]; then printf '[]'; else printf '%s' \"$objects\" | jq -c '[.data[0] | to_entries[] | select(.value[\"org.bluez.Device1\"] != null) | .value[\"org.bluez.Device1\"] as $device | select(($device.Connected.data // $device.Connected // false) == true) | {name: (($device.Alias.data // $device.Alias // $device.Name.data // $device.Name // \"Bluetooth device\") | tostring), connected: true}]' 2>/dev/null || printf '[]'; fi"
+const bluetoothConnectedCommand =
+  `${bluetoothDevicesCommand} | jq -e 'length > 0' >/dev/null && printf yes || printf no`
+const defaultSinkCommand =
+  "wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk -F ' = ' '/node.description|node.nick|node.name/ { gsub(/^\"|\"$/, \"\", $2); print $2; found=1; exit } END { if (!found) printf \"Unknown\" }'"
+const defaultSourceCommand =
+  "wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | awk -F ' = ' '/node.description|node.nick|node.name/ { gsub(/^\"|\"$/, \"\", $2); print $2; found=1; exit } END { if (!found) printf \"Unknown\" }'"
+
+void AstalBluetooth
 
 const run = async (cmd: string) => {
   try {
@@ -206,6 +222,8 @@ function AudioButton({ popup, setPopup }: PopupProps) {
 function AudioContent() {
   const wp = AstalWp.get_default()
   const speaker = wp?.defaultSpeaker
+  const defaultSpeaker = wp ? createBinding(wp, "defaultSpeaker") : null
+  const defaultMicrophone = wp ? createBinding(wp, "defaultMicrophone") : null
   const sinks = createPoll(
     "[]",
     2000,
@@ -223,6 +241,10 @@ function AudioContent() {
 
   const outputMute = createPoll("no", 500, sh("wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -q '\\[MUTED\\]' && printf yes || printf no"))
   const inputMute = createPoll("no", 500, sh("wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q '\\[MUTED\\]' && printf yes || printf no"))
+  const defaultSink = createPoll("Unknown", 2000, sh(defaultSinkCommand))
+  const defaultSource = createPoll("Unknown", 2000, sh(defaultSourceCommand))
+  const defaultSinkLabel = defaultSpeaker ? defaultSpeaker((device: any) => device?.description || defaultSink()) : defaultSink
+  const defaultSourceLabel = defaultMicrophone ? defaultMicrophone((device: any) => device?.description || defaultSource()) : defaultSource
   const speakerVolume = speaker ? createBinding(speaker, "volume") : 0
 
   return (
@@ -242,6 +264,7 @@ function AudioContent() {
           onChangeValue={({ value }) => speaker?.set_volume(value)}
         />
       </box>
+      <Row label="Default" value={defaultSinkLabel} />
       <For each={sinks((raw) => parseArray<AudioDevice>(raw))}>
         {(sink) => (
           <button class={sink.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-sink ${JSON.stringify(sink.name)}`)}>
@@ -258,13 +281,50 @@ function AudioContent() {
         >
           <label label="Mute" />
         </button>
-        <label label="Default source" />
       </box>
+      <Row label="Default" value={defaultSourceLabel} />
       <For each={sources((raw) => parseArray<AudioDevice>(raw))}>
         {(source) => (
           <button class={source.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-source ${JSON.stringify(source.name)}`)}>
             <label xalign={0} label={`${source.active ? "* " : ""}${source.description}`} />
           </button>
+        )}
+      </For>
+    </box>
+  )
+}
+
+function BluetoothButton({ popup, setPopup }: PopupProps) {
+  const connected = createPoll(
+    "no",
+    5000,
+    sh(bluetoothConnectedCommand),
+  )
+  const label = connected((state) => (state === "yes" ? "󰂱" : "󰂲"))
+
+  return <ToolButton name="bluetooth" className="bluetooth" label={label} popup={popup} setPopup={setPopup} />
+}
+
+function BluetoothContent() {
+  const devices = createPoll(
+    "[]",
+    5000,
+    sh(bluetoothDevicesCommand),
+  )
+  const rows = devices((raw) => {
+    const connectedDevices = parseArray<BluetoothDevice>(raw)
+    return connectedDevices.length > 0 ? connectedDevices : [{ name: "No connected devices", connected: false }]
+  })
+
+  return (
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <Row label="Status" value={rows((connectedDevices) => connectedDevices.some((device) => device.connected) ? "Connected" : "Disconnected")} />
+      <label class="section-title" xalign={0} label="Connected devices" />
+      <For each={rows}>
+        {(device) => (
+          <box class={device.connected ? "choice active readonly-choice" : "choice readonly-choice"} spacing={8}>
+            <label xalign={0} ellipsize={3} label={device.name} />
+          </box>
         )}
       </For>
     </box>
@@ -633,6 +693,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           <box $type="end" class="right" spacing={0}>
             <DictationButton popup={popup} setPopup={setActivePopup} />
             <NetworkButton popup={popup} setPopup={setActivePopup} />
+            <BluetoothButton popup={popup} setPopup={setActivePopup} />
             <AudioButton popup={popup} setPopup={setActivePopup} />
             <DisplayButton popup={popup} setPopup={setActivePopup} />
             <PerformanceButton popup={popup} setPopup={setActivePopup} />
@@ -649,6 +710,9 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       </PopupWindow>
       <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
         <NetworkContent />
+      </PopupWindow>
+      <PopupWindow name="bluetooth" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <BluetoothContent />
       </PopupWindow>
       <PopupWindow name="audio" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
         <AudioContent />
