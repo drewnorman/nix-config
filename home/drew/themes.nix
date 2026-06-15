@@ -284,6 +284,37 @@ let
       color: ${palette.red};
     }
 
+    .dictation-state {
+      padding: 6px;
+      background: ${palette.mutedBackground};
+      border-left: 3px solid ${palette.border};
+    }
+
+    .dictation-state.listening {
+      border-left-color: ${palette.accent};
+    }
+
+    .dictation-state.transcribing {
+      border-left-color: ${palette.green};
+    }
+
+    .dictation-state.typing {
+      border-left-color: ${palette.orange};
+    }
+
+    .dictation-state.error {
+      border-left-color: ${palette.yellow};
+    }
+
+    .dictation-state-label {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .dictation-state-detail {
+      color: ${palette.mutedForeground};
+    }
+
     .dictation.listening {
       background: ${palette.accent};
       color: ${palette.selectionForeground};

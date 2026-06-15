@@ -37,7 +37,7 @@ type WorkspaceSlot = {
   urgent?: boolean
 }
 
-type PopupName = "" | "clock" | "network" | "audio" | "display" | "performance" | "session" | "power"
+type PopupName = "" | "clock" | "network" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
 
 const sh = (cmd: string) => `bash -lc ${JSON.stringify(cmd)}`
 const profileBin = "/etc/profiles/per-user/drew/bin"
@@ -445,7 +445,24 @@ function SessionContent() {
   )
 }
 
-function Dictation() {
+const dictationStateLabel = (klass: string) => {
+  switch (klass) {
+    case "listening":
+      return "Listening"
+    case "transcribing":
+      return "Transcribing"
+    case "typing":
+      return "Typing"
+    case "error":
+      return "Error"
+    default:
+      return "Idle"
+  }
+}
+
+const dictationIsActive = (klass: string) => ["listening", "transcribing", "typing"].includes(klass)
+
+function DictationButton({ popup, setPopup }: PopupProps) {
   const status = createPoll("{}", 1000, command("dictate-status"))
   const label = status((raw) => {
     const klass = parseStatus(raw).class ?? "idle"
@@ -462,13 +479,39 @@ function Dictation() {
         return dictateIcon
     }
   })
-  const klass = status((raw) => `dictation ${parseStatus(raw).class ?? "idle"}`)
+  const klass = status((raw) => {
+    const state = parseStatus(raw).class ?? "idle"
+    return ["tool", "dictation", state, popup() === "dictation" ? "active" : ""].filter(Boolean).join(" ")
+  })
   const tooltip = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
 
   return (
-    <button class={klass} tooltipText={tooltip} onClicked={() => run(command("dictate-cancel"))}>
+    <button class={klass} tooltipText={tooltip} onClicked={() => setPopup(popup() === "dictation" ? "" : "dictation")}>
       <label label={label} />
     </button>
+  )
+}
+
+function DictationContent() {
+  const status = createPoll("{}", 1000, command("dictate-status"))
+  const stateClass = status((raw) => parseStatus(raw).class ?? "idle")
+  const stateLabel = stateClass(dictationStateLabel)
+  const details = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
+
+  return (
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <box class={stateClass((klass) => `dictation-state ${klass}`)} orientation={Gtk.Orientation.VERTICAL} spacing={2}>
+        <label class="section-title" xalign={0} label="Transcription state" />
+        <label class="dictation-state-label" xalign={0} label={stateLabel} />
+        <label class="dictation-state-detail" xalign={0} wrap label={details} />
+      </box>
+      <button
+        class={stateClass((klass) => (dictationIsActive(klass) ? "choice active" : "choice"))}
+        onClicked={() => run(command("dictate-toggle"))}
+      >
+        <label label={stateClass((klass) => (dictationIsActive(klass) ? "Stop recording" : "Start recording"))} />
+      </button>
+    </box>
   )
 }
 
@@ -588,7 +631,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
             <Clock popup={popup} setPopup={setActivePopup} />
           </box>
           <box $type="end" class="right" spacing={0}>
-            <Dictation />
+            <DictationButton popup={popup} setPopup={setActivePopup} />
             <NetworkButton popup={popup} setPopup={setActivePopup} />
             <AudioButton popup={popup} setPopup={setActivePopup} />
             <DisplayButton popup={popup} setPopup={setActivePopup} />
@@ -600,6 +643,9 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       </window>
       <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
         <ClockContent />
+      </PopupWindow>
+      <PopupWindow name="dictation" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <DictationContent />
       </PopupWindow>
       <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
         <NetworkContent />
