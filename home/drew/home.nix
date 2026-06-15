@@ -1276,7 +1276,7 @@ in
   systemd.user.services.podman = {
     Unit.Description = "Podman API service";
     Service = {
-      ExecStart = "${pkgs.podman}/bin/podman system service --time=0 unix://%t/podman/podman.sock";
+      ExecStart = "${pkgs.podman}/bin/podman system service --time=0";
       Type = "exec";
     };
   };
