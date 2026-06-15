@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+message_file=$1
+subject=$(sed -n '1p' "$message_file")
+
+conventional_re='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([A-Za-z0-9._/-]+\))?(!)?: .+'
+
+case "$subject" in
+  Merge\ *|Revert\ *)
+    exit 0
+    ;;
+esac
+
+if [[ ! "$subject" =~ $conventional_re ]]; then
+  cat >&2 <<'EOF'
+Commit message must use Conventional Commits:
+
+  type(scope): summary
+  type: summary
+  type(scope)!: summary
+
+Allowed types:
+  build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test
+
+Examples:
+  feat(ags): add workspace monitor labels
+  fix(home): update SSH settings
+  chore(flake): update inputs
+EOF
+  exit 1
+fi

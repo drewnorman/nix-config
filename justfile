@@ -1,5 +1,8 @@
 set dotenv-load := false
 
+install-hooks:
+    git config core.hooksPath .githooks
+
 switch:
     nh os switch
 

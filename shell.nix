@@ -10,4 +10,8 @@ pkgs.mkShell {
     nix
     nixfmt
   ];
+
+  shellHook = ''
+    git config core.hooksPath .githooks
+  '';
 }
