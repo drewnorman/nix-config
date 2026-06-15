@@ -1089,17 +1089,17 @@ in
     enable = true;
     enableDefaultConfig = false;
     includes = [ "~/.ssh/config.local" ];
-    matchBlocks = {
+    settings = {
       "github.com" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
-        user = "git";
-        identityFile = "~/.ssh/git@github.com";
-        identitiesOnly = true;
+        User = "git";
+        IdentityFile = "~/.ssh/git@github.com";
+        IdentitiesOnly = true;
       };
 
       "bitbucket.org" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
-        user = "git";
-        identityFile = "~/.ssh/git@bitbucket.org";
-        identitiesOnly = true;
+        User = "git";
+        IdentityFile = "~/.ssh/git@bitbucket.org";
+        IdentitiesOnly = true;
       };
 
       wildcardIdentity =
@@ -1109,8 +1109,8 @@ in
             "bitbucket.org"
           ]
           {
-            host = "* !*.sftp.wpengine.com !lab-core !lab-core-ts";
-            identityFile = "~/.ssh/%r@%h";
+            header = "Host * !*.sftp.wpengine.com !lab-core !lab-core-ts";
+            IdentityFile = "~/.ssh/%r@%h";
           };
     };
   };
