@@ -23,10 +23,25 @@ menubutton > button {
 
 .popover {
   min-width: 260px;
-  padding: 10px;
+  padding: 8px;
   background: #1c1c1c;
   color: #d0d0d0;
   border: 1px solid #d0d0d0;
+}
+
+.popover button {
+  min-height: 24px;
+  padding: 0 6px;
+}
+
+.clickout,
+.clickout:hover {
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  background: #0000002D;
+  color: transparent;
+  box-shadow: none;
 }
 
 .workspace.focused,

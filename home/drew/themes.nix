@@ -223,10 +223,25 @@ let
 
     .popover {
       min-width: 260px;
-      padding: 10px;
+      padding: 8px;
       background: ${palette.panelBackground};
       color: ${palette.foreground};
       border: 1px solid ${palette.border};
+    }
+
+    .popover button {
+      min-height: 24px;
+      padding: 0 6px;
+    }
+
+    .clickout,
+    .clickout:hover {
+      min-height: 0;
+      min-width: 0;
+      padding: 0;
+      background: #0000002D;
+      color: transparent;
+      box-shadow: none;
     }
 
     .section-title {
@@ -257,7 +272,7 @@ let
     }
 
     .choice {
-      min-height: 28px;
+      min-height: 24px;
       padding: 0 6px;
     }
 

@@ -1,6 +1,6 @@
-import { For, With, createBinding, createState, onCleanup } from "ags"
+import { For, Fragment, With, createBinding, createState, onCleanup } from "ags"
 import app from "ags/gtk4/app"
-import { createSubprocess, exec, execAsync } from "ags/process"
+import { createSubprocess, exec, execAsync, subprocess } from "ags/process"
 import { createPoll } from "ags/time"
 import Astal from "gi://Astal?version=4.0"
 import AstalNetwork from "gi://AstalNetwork"
@@ -36,6 +36,8 @@ type WorkspaceSlot = {
   non_empty?: boolean
   urgent?: boolean
 }
+
+type PopupName = "" | "clock" | "network" | "audio" | "display" | "performance" | "session" | "power"
 
 const sh = (cmd: string) => `bash -lc ${JSON.stringify(cmd)}`
 const profileBin = "/etc/profiles/per-user/drew/bin"
@@ -89,24 +91,38 @@ const latestLine = (raw: string) => {
   return lines.length > 0 ? lines[lines.length - 1] : "[]"
 }
 
+const [anyPopupOpen, setAnyPopupOpen] = createState(false)
+const closePopupCallbacks = new Set<() => void>()
+
+const closeAllPopups = () => {
+  for (const close of closePopupCallbacks) {
+    close()
+  }
+  setAnyPopupOpen(false)
+}
+
 function ToolButton({
+  name,
   className,
   label,
-  children,
+  popup,
+  setPopup,
 }: {
+  name: PopupName
   className?: string
   label: any
-  children: JSX.Element
+  popup: any
+  setPopup: (popup: PopupName) => void
 }) {
   return (
-    <menubutton class={`tool ${className ?? ""}`}>
+    <button
+      class={popup((active: PopupName) =>
+        ["tool", className ?? "", active === name ? "active" : ""].filter(Boolean).join(" ")
+      )}
+      onClicked={() => setPopup(popup() === name ? "" : name)}
+    >
       <label label={label} />
-      <popover>
-        <box class="popover" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-          {children}
-        </box>
-      </popover>
-    </menubutton>
+    </button>
   )
 }
 
@@ -162,22 +178,32 @@ function Workspaces({ connector }: { connector: string }) {
   )
 }
 
-function Clock() {
-  const time = createPoll("", 1000, () => GLib.DateTime.new_now_local().format("%a %b %d %H:%M:%S")!)
-
-  return (
-    <menubutton class="clock">
-      <label label={time} />
-      <popover>
-        <box class="popover">
-          <Gtk.Calendar />
-        </box>
-      </popover>
-    </menubutton>
-  )
+type PopupProps = {
+  popup: any
+  setPopup: (popup: PopupName) => void
 }
 
-function Audio() {
+function Clock({ popup, setPopup }: PopupProps) {
+  const time = createPoll("", 1000, () => GLib.DateTime.new_now_local().format("%a %b %d %H:%M:%S")!)
+
+  return <ToolButton name="clock" className="clock" label={time} popup={popup} setPopup={setPopup} />
+}
+
+function ClockContent() {
+  return <Gtk.Calendar />
+}
+
+function AudioButton({ popup, setPopup }: PopupProps) {
+  const label = createPoll(
+    "󰕾",
+    500,
+    sh("state=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || true); volume=$(printf '%s' \"$state\" | awk '{ printf \"%d\", $2 * 100 }'); if printf '%s' \"$state\" | grep -q '\\[MUTED\\]'; then printf '󰖁'; elif [ \"${volume:-0}\" -lt 34 ]; then printf '󰕿'; elif [ \"${volume:-0}\" -lt 67 ]; then printf '󰖀'; else printf '󰕾'; fi"),
+  )
+
+  return <ToolButton name="audio" className="audio" label={label} popup={popup} setPopup={setPopup} />
+}
+
+function AudioContent() {
   const wp = AstalWp.get_default()
   const speaker = wp?.defaultSpeaker
   const sinks = createPoll(
@@ -197,69 +223,67 @@ function Audio() {
 
   const outputMute = createPoll("no", 500, sh("wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -q '\\[MUTED\\]' && printf yes || printf no"))
   const inputMute = createPoll("no", 500, sh("wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q '\\[MUTED\\]' && printf yes || printf no"))
-  const label = createPoll(
-    "󰕾",
-    500,
-    sh("state=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || true); volume=$(printf '%s' \"$state\" | awk '{ printf \"%d\", $2 * 100 }'); if printf '%s' \"$state\" | grep -q '\\[MUTED\\]'; then printf '󰖁'; elif [ \"${volume:-0}\" -lt 34 ]; then printf '󰕿'; elif [ \"${volume:-0}\" -lt 67 ]; then printf '󰖀'; else printf '󰕾'; fi"),
-  )
   const speakerVolume = speaker ? createBinding(speaker, "volume") : 0
 
   return (
-    <ToolButton className="audio" label={label}>
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <label class="section-title" xalign={0} label="Output" />
-        <box spacing={8}>
-          <button
-            class={outputMute((mute) => (mute === "yes" ? "choice active" : "choice"))}
-            onClicked={() => run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")}
-          >
-            <label label="Mute" />
-          </button>
-          <slider
-            hexpand
-            widthRequest={220}
-            value={speakerVolume as any}
-            onChangeValue={({ value }) => speaker?.set_volume(value)}
-          />
-        </box>
-        <For each={sinks((raw) => parseArray<AudioDevice>(raw))}>
-          {(sink) => (
-            <button class={sink.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-sink ${JSON.stringify(sink.name)}`)}>
-              <label xalign={0} label={`${sink.active ? "* " : ""}${sink.description}`} />
-            </button>
-          )}
-        </For>
-
-        <label class="section-title" xalign={0} label="Input" />
-        <box spacing={8}>
-          <button
-            class={inputMute((mute) => (mute === "yes" ? "choice active" : "choice"))}
-            onClicked={() => run("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle")}
-          >
-            <label label="Mute" />
-          </button>
-          <label label="Default source" />
-        </box>
-        <For each={sources((raw) => parseArray<AudioDevice>(raw))}>
-          {(source) => (
-            <button class={source.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-source ${JSON.stringify(source.name)}`)}>
-              <label xalign={0} label={`${source.active ? "* " : ""}${source.description}`} />
-            </button>
-          )}
-        </For>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <label class="section-title" xalign={0} label="Output" />
+      <box spacing={8}>
+        <button
+          class={outputMute((mute) => (mute === "yes" ? "choice active" : "choice"))}
+          onClicked={() => run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")}
+        >
+          <label label="Mute" />
+        </button>
+        <slider
+          hexpand
+          widthRequest={220}
+          value={speakerVolume as any}
+          onChangeValue={({ value }) => speaker?.set_volume(value)}
+        />
       </box>
-    </ToolButton>
+      <For each={sinks((raw) => parseArray<AudioDevice>(raw))}>
+        {(sink) => (
+          <button class={sink.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-sink ${JSON.stringify(sink.name)}`)}>
+            <label xalign={0} label={`${sink.active ? "* " : ""}${sink.description}`} />
+          </button>
+        )}
+      </For>
+
+      <label class="section-title" xalign={0} label="Input" />
+      <box spacing={8}>
+        <button
+          class={inputMute((mute) => (mute === "yes" ? "choice active" : "choice"))}
+          onClicked={() => run("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle")}
+        >
+          <label label="Mute" />
+        </button>
+        <label label="Default source" />
+      </box>
+      <For each={sources((raw) => parseArray<AudioDevice>(raw))}>
+        {(source) => (
+          <button class={source.active ? "choice active" : "choice"} onClicked={() => run(`pactl set-default-source ${JSON.stringify(source.name)}`)}>
+            <label xalign={0} label={`${source.active ? "* " : ""}${source.description}`} />
+          </button>
+        )}
+      </For>
+    </box>
   )
 }
 
-function Network() {
-  const network = AstalNetwork.get_default()
-  const wifi = network ? createBinding(network, "wifi") : null
+function NetworkButton({ popup, setPopup }: PopupProps) {
   const icon = createPoll(
     "󰤨",
     2000,
     sh("if ! ip -brief addr show scope global | grep -q .; then printf '󰤭'; elif ip -brief addr show scope global | awk '{print $1}' | grep -Eq '^(en|eth)'; then printf '󰈀'; else printf '󰤨'; fi"),
   )
+
+  return <ToolButton name="network" className="network" label={icon} popup={popup} setPopup={setPopup} />
+}
+
+function NetworkContent() {
+  const network = AstalNetwork.get_default()
+  const wifi = network ? createBinding(network, "wifi") : null
   const status = createPoll(
     "Disconnected",
     10000,
@@ -272,41 +296,44 @@ function Network() {
   )
 
   return (
-    <ToolButton className="network" label={icon}>
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <Row label="Status" value={status} />
-        <With value={wifi as any}>
-          {(w: any) =>
-            w && (
-              <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
-                <Row label="SSID" value={w.ssid || "Unknown"} />
-                <Row label="Signal" value={`${w.strength ?? 0}%`} />
-              </box>
-            )
-          }
-        </With>
-        <button onClicked={() => run(`station=$(${iwdStationPath}); [ -n "$station" ] && busctl call net.connman.iwd "$station" net.connman.iwd.Station Scan`)}>
-          <label label="Scan Wi-Fi" />
-        </button>
-        <For each={networks((raw) => parseArray<WifiNetwork>(raw))}>
-          {(network) => (
-            <box class={network.connected ? "network-row active" : "network-row"} spacing={8}>
-              <label class="network-lock" label={network.locked ? "" : ""} />
-              <label hexpand xalign={0} ellipsize={3} label={network.ssid} />
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <Row label="Status" value={status} />
+      <With value={wifi as any}>
+        {(w: any) =>
+          w && (
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+              <Row label="SSID" value={w.ssid || "Unknown"} />
+              <Row label="Signal" value={`${w.strength ?? 0}%`} />
             </box>
-          )}
-        </For>
-      </box>
-    </ToolButton>
+          )
+        }
+      </With>
+      <button onClicked={() => run(`station=$(${iwdStationPath}); [ -n "$station" ] && busctl call net.connman.iwd "$station" net.connman.iwd.Station Scan`)}>
+        <label label="Scan Wi-Fi" />
+      </button>
+      <For each={networks((raw) => parseArray<WifiNetwork>(raw))}>
+        {(network) => (
+          <box class={network.connected ? "network-row active" : "network-row"} spacing={8}>
+            <label class="network-lock" label={network.locked ? "" : ""} />
+            <label hexpand xalign={0} ellipsize={3} label={network.ssid} />
+          </box>
+        )}
+      </For>
+    </box>
   )
 }
 
-function Power() {
+function PowerButton({ popup, setPopup }: PopupProps) {
   const icon = createPoll(
     "󰁹",
     10000,
     sh("ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null || printf 0); capacity=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || printf 100); if [ \"$ac\" = 1 ]; then printf '󰚥'; elif [ \"$capacity\" -le 15 ]; then printf '󰁺'; elif [ \"$capacity\" -le 30 ]; then printf '󰁼'; elif [ \"$capacity\" -le 55 ]; then printf '󰁾'; elif [ \"$capacity\" -le 80 ]; then printf '󰂀'; else printf '󰁹'; fi"),
   )
+
+  return <ToolButton name="power" className="power" label={icon} popup={popup} setPopup={setPopup} />
+}
+
+function PowerContent() {
   const details = createPoll(
     "",
     30000,
@@ -314,16 +341,18 @@ function Power() {
   )
 
   return (
-    <ToolButton className="power" label={icon}>
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <Row label="Battery" value={details} />
-        <Row label="AC" value={createPoll("", 30000, sh("cat /sys/class/power_supply/AC/online 2>/dev/null | sed 's/1/connected/;s/0/disconnected/' || true"))} />
-      </box>
-    </ToolButton>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <Row label="Battery" value={details} />
+      <Row label="AC" value={createPoll("", 30000, sh("cat /sys/class/power_supply/AC/online 2>/dev/null | sed 's/1/connected/;s/0/disconnected/' || true"))} />
+    </box>
   )
 }
 
-function Display() {
+function DisplayButton({ popup, setPopup }: PopupProps) {
+  return <ToolButton name="display" className="display" label="󰍹" popup={popup} setPopup={setPopup} />
+}
+
+function DisplayContent() {
   const brightness = createPoll(
     "0",
     2000,
@@ -332,46 +361,50 @@ function Display() {
   const gammastep = createPoll("{}", 10000, command("waybar-gammastep-status"))
 
   return (
-    <ToolButton className="display" label="󰍹">
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <label class="section-title" xalign={0} label="Brightness" />
-        <slider
-          widthRequest={260}
-          value={brightness((b) => Number(b) / 100)}
-          onChangeValue={({ value }) => run(`brightnessctl set ${Math.round(value * 100)}% || true`)}
-        />
-        <With value={gammastep(parseStatus)}>
-          {(status) => (
-            <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
-              <Row label="Gammastep" value={status.tooltip ?? "Unknown"} />
-              <button onClicked={() => run(command("waybar-gammastep-toggle"))}>
-                <label label="Toggle Gammastep" />
-              </button>
-            </box>
-          )}
-        </With>
-      </box>
-    </ToolButton>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <label class="section-title" xalign={0} label="Brightness" />
+      <slider
+        widthRequest={260}
+        value={brightness((b) => Number(b) / 100)}
+        onChangeValue={({ value }) => run(`brightnessctl set ${Math.round(value * 100)}% || true`)}
+      />
+      <With value={gammastep(parseStatus)}>
+        {(status) => (
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+            <Row label="Gammastep" value={status.tooltip ?? "Unknown"} />
+            <button onClicked={() => run(command("waybar-gammastep-toggle"))}>
+              <label label="Toggle Gammastep" />
+            </button>
+          </box>
+        )}
+      </With>
+    </box>
   )
 }
 
-function Performance() {
+function PerformanceButton({ popup, setPopup }: PopupProps) {
+  return <ToolButton name="performance" className="performance" label="󰓅" popup={popup} setPopup={setPopup} />
+}
+
+function PerformanceContent() {
   const cpu = createPoll("0%", 3000, sh("top -bn1 | awk '/Cpu\\(s\\)/ { printf \"%d%%\", 100 - $8 }'"))
   const memory = createPoll("0%", 5000, sh("free | awk '/Mem:/ { printf \"%d%%\", $3 * 100 / $2 }'"))
   const temp = createPoll("", 5000, sh("for t in /sys/class/thermal/thermal_zone*/temp; do awk '{ printf \"%d°C\", $1 / 1000 }' \"$t\"; break; done"))
 
   return (
-    <ToolButton className="performance" label="󰓅">
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <Row label="CPU" value={cpu} />
-        <Row label="Memory" value={memory} />
-        <Row label="Temperature" value={temp} />
-      </box>
-    </ToolButton>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <Row label="CPU" value={cpu} />
+      <Row label="Memory" value={memory} />
+      <Row label="Temperature" value={temp} />
+    </box>
   )
 }
 
-function Session() {
+function SessionButton({ popup, setPopup }: PopupProps) {
+  return <ToolButton name="session" className="session" label="󰍃" popup={popup} setPopup={setPopup} />
+}
+
+function SessionContent() {
   const idle = createPoll(
     "false",
     2000,
@@ -392,25 +425,23 @@ function Session() {
   }
 
   return (
-    <ToolButton className="session" label="󰍃">
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        <button
-          class={idle((enabled) => (enabled === "true" ? "choice active" : "choice"))}
-          onClicked={toggleIdle}
-        >
-          <label label={idle((enabled) => (enabled === "true" ? "Disable keep awake" : "Enable keep awake"))} />
-        </button>
-        <button onClicked={() => run(command("lock-screen"))}>
-          <label label="Lock" />
-        </button>
-        <button onClicked={() => confirm("reboot", "systemctl reboot")}>
-          <label label={pending((value) => (value === "reboot" ? "Confirm reboot" : "Reboot"))} />
-        </button>
-        <button class="danger" onClicked={() => confirm("shutdown", "systemctl poweroff")}>
-          <label label={pending((value) => (value === "shutdown" ? "Confirm shutdown" : "Shutdown"))} />
-        </button>
-      </box>
-    </ToolButton>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <button
+        class={idle((enabled) => (enabled === "true" ? "choice active" : "choice"))}
+        onClicked={toggleIdle}
+      >
+        <label label={idle((enabled) => (enabled === "true" ? "Disable keep awake" : "Enable keep awake"))} />
+      </button>
+      <button onClicked={() => run(command("lock-screen"))}>
+        <label label="Lock" />
+      </button>
+      <button onClicked={() => confirm("reboot", "systemctl reboot")}>
+        <label label={pending((value) => (value === "reboot" ? "Confirm reboot" : "Reboot"))} />
+      </button>
+      <button class="danger" onClicked={() => confirm("shutdown", "systemctl poweroff")}>
+        <label label={pending((value) => (value === "shutdown" ? "Confirm shutdown" : "Shutdown"))} />
+      </button>
+    </box>
   )
 }
 
@@ -441,43 +472,153 @@ function Dictation() {
   )
 }
 
-export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
-  let win: Astal.Window
-  const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
-  const connector = monitorName(gdkmonitor)
-
-  onCleanup(() => {
-    win.destroy()
-  })
+function PopupWindow({
+  name,
+  popup,
+  connector,
+  gdkmonitor,
+  children,
+  register,
+}: {
+  name: PopupName
+  popup: any
+  connector: string
+  gdkmonitor: Gdk.Monitor
+  children: JSX.Element
+  register: (window: Astal.Window) => void
+}) {
+  const { TOP, RIGHT } = Astal.WindowAnchor
 
   return (
     <window
-      $={(self) => (win = self)}
-      visible
-      namespace="drew-top-bar"
-      name={`bar-${connector}`}
+      $={register}
+      visible={popup((active: PopupName) => active === name)}
+      namespace="drew-top-bar-popup"
+      name={`bar-popup-${connector}-${name}`}
       gdkmonitor={gdkmonitor}
-      exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      anchor={TOP | LEFT | RIGHT}
+      layer={Astal.Layer.OVERLAY}
+      exclusivity={Astal.Exclusivity.IGNORE}
+      keymode={Astal.Keymode.NONE}
+      anchor={TOP | RIGHT}
+      margin_top={36}
+      margin_right={18}
       application={app}
     >
-      <centerbox class="bar">
-        <box $type="start" class="left" spacing={0}>
-          <Workspaces connector={connector} />
-        </box>
-        <box $type="center" class="center">
-          <Clock />
-        </box>
-        <box $type="end" class="right" spacing={0}>
-          <Dictation />
-          <Network />
-          <Audio />
-          <Display />
-          <Performance />
-          <Session />
-          <Power />
-        </box>
-      </centerbox>
+      <box class="popover" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+        {children}
+      </box>
     </window>
+  )
+}
+
+export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
+  let win: Astal.Window | null = null
+  let clickoutWin: Astal.Window | null = null
+  const popupWins = new Array<Astal.Window>()
+  const { TOP, LEFT, RIGHT } = Astal.WindowAnchor
+  const connector = monitorName(gdkmonitor)
+  const [popup, setPopup] = createState<PopupName>("")
+  const setActivePopup = (active: PopupName) => {
+    if (active !== "") {
+      closeAllPopups()
+    }
+    setPopup(active)
+    setAnyPopupOpen(active !== "")
+  }
+  const closePopup = () => setPopup("")
+  const focusEvents = subprocess(
+    sh("swaymsg -t subscribe -m '[\"window\",\"workspace\"]' 2>/dev/null || true"),
+    closeAllPopups,
+    () => {},
+  )
+
+  closePopupCallbacks.add(closePopup)
+
+  onCleanup(() => {
+    closePopupCallbacks.delete(closePopup)
+    focusEvents.kill()
+    for (const popupWin of popupWins) {
+      popupWin.destroy()
+    }
+    clickoutWin?.destroy()
+    win?.destroy()
+  })
+
+  return (
+    <Fragment>
+      <window
+        $={(self) => (clickoutWin = self)}
+        visible={anyPopupOpen}
+        namespace="drew-top-bar-clickout"
+        name={`bar-clickout-${connector}`}
+        gdkmonitor={gdkmonitor}
+        layer={Astal.Layer.TOP}
+        exclusivity={Astal.Exclusivity.IGNORE}
+        keymode={Astal.Keymode.NONE}
+        anchor={TOP | LEFT | RIGHT | Astal.WindowAnchor.BOTTOM}
+        application={app}
+      >
+        <button
+          class="clickout"
+          hexpand
+          vexpand
+          widthRequest={gdkmonitor.geometry.width}
+          heightRequest={gdkmonitor.geometry.height}
+          onClicked={closeAllPopups}
+        >
+          <label label="" />
+        </button>
+      </window>
+      <window
+        $={(self) => (win = self)}
+        visible
+        namespace="drew-top-bar"
+        name={`bar-${connector}`}
+        gdkmonitor={gdkmonitor}
+        exclusivity={Astal.Exclusivity.EXCLUSIVE}
+        keymode={Astal.Keymode.NONE}
+        anchor={TOP | LEFT | RIGHT}
+        application={app}
+      >
+        <centerbox class="bar">
+          <box $type="start" class="left" spacing={0}>
+            <Workspaces connector={connector} />
+          </box>
+          <box $type="center" class="center">
+            <Clock popup={popup} setPopup={setActivePopup} />
+          </box>
+          <box $type="end" class="right" spacing={0}>
+            <Dictation />
+            <NetworkButton popup={popup} setPopup={setActivePopup} />
+            <AudioButton popup={popup} setPopup={setActivePopup} />
+            <DisplayButton popup={popup} setPopup={setActivePopup} />
+            <PerformanceButton popup={popup} setPopup={setActivePopup} />
+            <SessionButton popup={popup} setPopup={setActivePopup} />
+            <PowerButton popup={popup} setPopup={setActivePopup} />
+          </box>
+        </centerbox>
+      </window>
+      <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <ClockContent />
+      </PopupWindow>
+      <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <NetworkContent />
+      </PopupWindow>
+      <PopupWindow name="audio" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <AudioContent />
+      </PopupWindow>
+      <PopupWindow name="display" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <DisplayContent />
+      </PopupWindow>
+      <PopupWindow name="performance" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <PerformanceContent />
+      </PopupWindow>
+      <PopupWindow name="session" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <SessionContent />
+      </PopupWindow>
+      <PopupWindow name="power" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
+        <PowerContent />
+      </PopupWindow>
+    </Fragment>
   )
 }
