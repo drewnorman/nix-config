@@ -58,6 +58,10 @@ const defaultSinkCommand =
   "wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk -F ' = ' '/node.description|node.nick|node.name/ { gsub(/^\"|\"$/, \"\", $2); print $2; found=1; exit } END { if (!found) printf \"Unknown\" }'"
 const defaultSourceCommand =
   "wpctl inspect @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | awk -F ' = ' '/node.description|node.nick|node.name/ { gsub(/^\"|\"$/, \"\", $2); print $2; found=1; exit } END { if (!found) printf \"Unknown\" }'"
+const keepAwakeUnit = "drew-ags-keep-awake.service"
+const keepAwakeStatusCommand = `systemctl --user is-active --quiet ${keepAwakeUnit} && printf true || printf false`
+const keepAwakeToggleCommand =
+  `if systemctl --user is-active --quiet ${keepAwakeUnit}; then systemctl --user stop ${keepAwakeUnit}; else systemd-run --user --unit=drew-ags-keep-awake --property=Type=exec --property=Description='AGS keep awake inhibitor' --collect systemd-inhibit --what=idle:sleep --who=ags --why='AGS keep awake' sleep infinity; fi`
 
 void AstalBluetooth
 
@@ -65,7 +69,7 @@ const run = async (cmd: string) => {
   try {
     await execAsync(sh(cmd))
   } catch (error) {
-    console.error(error)
+    console.error(`Command failed: ${cmd}`, error)
   }
 }
 
@@ -470,13 +474,10 @@ function SessionContent() {
   const idle = createPoll(
     "false",
     2000,
-    sh("pgrep -f 'systemd-inhibit.*AGS keep awake' >/dev/null && printf true || printf false"),
+    sh(keepAwakeStatusCommand),
   )
   const [pending, setPending] = createState("")
-  const toggleIdle = () =>
-    run(
-      "if pgrep -f 'systemd-inhibit.*AGS keep awake' >/dev/null; then pkill -f 'systemd-inhibit.*AGS keep awake'; else systemd-inhibit --what=idle:sleep --who=ags --why='AGS keep awake' sleep infinity >/dev/null 2>&1 & fi",
-    )
+  const toggleIdle = () => run(keepAwakeToggleCommand)
   const confirm = (action: string, command: string) => {
     if (pending() === action) {
       setPending("")
