@@ -809,15 +809,6 @@ let
     printf '%s\n' "Installed model: $model_file"
   '';
 
-  ensureLocalProxyNetwork = pkgs.writeShellScript "ensure-local-proxy-network" ''
-    ${pkgs.podman}/bin/podman network exists local-proxy || \
-      ${pkgs.podman}/bin/podman network create local-proxy
-  '';
-
-  removeLocalProxyContainer = pkgs.writeShellScript "remove-local-proxy-container" ''
-    ${pkgs.podman}/bin/podman rm -f traefik-local-proxy >/dev/null 2>&1 || true
-  '';
-
   hiddenDesktopEntry = name: ''
     [Desktop Entry]
     Type=Application
@@ -1281,37 +1272,6 @@ in
     };
   };
 
-  systemd.user.services.traefik-local-proxy = {
-    Unit = {
-      Description = "Rootless Traefik local development proxy";
-      After = [ "podman.socket" ];
-      Requires = [ "podman.socket" ];
-    };
-    Service = {
-      ExecStartPre = [
-        "${ensureLocalProxyNetwork}"
-        "${removeLocalProxyContainer}"
-      ];
-      ExecStart = ''
-        ${pkgs.podman}/bin/podman run --rm --name traefik-local-proxy \
-          --network local-proxy \
-          --publish 127.0.0.1:80:80 \
-          --volume %t/podman/podman.sock:/var/run/docker.sock \
-          docker.io/library/traefik:v3 \
-          --entrypoints.web.address=:80 \
-          --providers.docker=true \
-          --providers.docker.endpoint=unix:///var/run/docker.sock \
-          --providers.docker.exposedbydefault=false \
-          --providers.docker.network=local-proxy \
-          --log.level=INFO
-      '';
-      ExecStopPost = "${removeLocalProxyContainer}";
-      Restart = "on-failure";
-      RestartSec = "2s";
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
-
   programs.lazygit.enable = true;
 
   programs.ags = {
@@ -1390,6 +1350,32 @@ in
       pictures = "${config.home.homeDirectory}/pictures";
     };
     configFile = {
+      "containers/systemd/local-proxy.network".text = ''
+        [Network]
+        NetworkName=local-proxy
+      '';
+      "containers/systemd/traefik-local-proxy.container".text = ''
+        [Unit]
+        Description=Rootless Traefik local development proxy
+        Requires=podman.socket local-proxy.network
+        After=podman.socket local-proxy.network
+
+        [Container]
+        Image=docker.io/library/traefik:v3.7
+        ContainerName=traefik-local-proxy
+        Network=local-proxy.network
+        PublishPort=127.0.0.1:80:80
+        Volume=%t/podman/podman.sock:/var/run/docker.sock
+        Exec=--entrypoints.web.address=:80 --providers.docker=true --providers.docker.endpoint=unix:///var/run/docker.sock --providers.docker.exposedbydefault=false --providers.docker.network=local-proxy --log.level=INFO
+
+        [Service]
+        Restart=on-failure
+        RestartSec=2s
+        TimeoutStartSec=900
+
+        [Install]
+        WantedBy=default.target
+      '';
       "htop/htoprc".source = ./config/htop/htoprc;
       "mako/config".text = theme.makoConfig;
       "sway/config".text =
