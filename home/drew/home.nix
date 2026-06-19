@@ -961,6 +961,8 @@ in
     /.zshrc.local
 
     # AI tooling
+    **/.mcp.json
+    **/.claude/
     **/AGENTS.md
     **/.claude/settings.local.json
     /.codex
