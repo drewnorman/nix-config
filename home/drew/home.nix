@@ -1134,6 +1134,13 @@ in
     run ${refreshThemeSession}/bin/drew-refresh-theme-session
   '';
 
+  home.activation.restartLocalProxy = config.lib.dag.entryAfter [ "linkGeneration" ] ''
+    if ${pkgs.systemd}/bin/systemctl --user --quiet is-system-running 2>/dev/null; then
+      run ${pkgs.systemd}/bin/systemctl --user daemon-reload
+      run ${pkgs.systemd}/bin/systemctl --user restart traefik-local-proxy.service
+    fi
+  '';
+
   programs.fish = {
     enable = true;
     shellAliases = {
