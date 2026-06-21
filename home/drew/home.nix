@@ -1134,13 +1134,6 @@ in
     run ${refreshThemeSession}/bin/drew-refresh-theme-session
   '';
 
-  home.activation.restartLocalProxy = config.lib.dag.entryAfter [ "linkGeneration" ] ''
-    if ${pkgs.systemd}/bin/systemctl --user --quiet is-system-running 2>/dev/null; then
-      run ${pkgs.systemd}/bin/systemctl --user daemon-reload
-      run ${pkgs.systemd}/bin/systemctl --user restart traefik-local-proxy.service
-    fi
-  '';
-
   programs.fish = {
     enable = true;
     shellAliases = {
@@ -1279,6 +1272,28 @@ in
       ExecStart = "${pkgs.podman}/bin/podman system service --time=0";
       Type = "exec";
     };
+  };
+
+  systemd.user.services.traefik-local-proxy-start = {
+    Unit = {
+      Description = "Start Traefik local development proxy";
+      Wants = [ "podman.socket" ];
+      After = [ "podman.socket" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStartPre = "${pkgs.systemd}/bin/systemctl --user daemon-reload";
+      ExecStart = "${pkgs.systemd}/bin/systemctl --user start traefik-local-proxy.service";
+    };
+  };
+
+  systemd.user.timers.traefik-local-proxy-start = {
+    Unit.Description = "Start Traefik local development proxy after user manager startup";
+    Timer = {
+      OnStartupSec = "15s";
+      Unit = "traefik-local-proxy-start.service";
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 
   programs.lazygit.enable = true;
