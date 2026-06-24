@@ -16,13 +16,10 @@ vim.api.nvim_create_autocmd("TermOpen", {
     command = "startinsert",
 })
 
--- Start Treesitter explicitly for Twig templates.
 vim.api.nvim_create_autocmd("FileType", {
     group = augroup,
     pattern = "twig",
     callback = function(args)
-        pcall(vim.treesitter.start, args.buf, "twig")
-
         -- Reuse HTML tag matching in Twig buffers while keeping Twig's own
         -- ftplugin settings intact.
         if not vim.bo[args.buf].matchpairs:find("<:>", 1, true) then
