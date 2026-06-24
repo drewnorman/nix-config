@@ -336,6 +336,10 @@ let
       border-left-color: ${palette.orange};
     }
 
+    .dictation-state.stopping {
+      border-left-color: ${palette.mutedForeground};
+    }
+
     .dictation-state.error {
       border-left-color: ${palette.yellow};
     }
@@ -364,9 +368,76 @@ let
       color: ${palette.selectionForeground};
     }
 
+    .dictation.stopping {
+      background: ${palette.mutedBackground};
+      color: ${palette.foreground};
+    }
+
+    .dictation.stopping label {
+      font-size: 12px;
+    }
+
     .dictation.error {
       background: ${palette.yellow};
       color: ${palette.selectionForeground};
+    }
+
+    .dictation-overlay {
+      min-width: 220px;
+      padding: 8px 12px;
+      background: ${palette.panelBackground};
+      color: ${palette.foreground};
+      border: 1px solid ${palette.border};
+      border-left: 4px solid ${palette.accent};
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .dictation-overlay.transcribing {
+      border-left-color: ${palette.green};
+    }
+
+    .dictation-overlay.typing {
+      border-left-color: ${palette.orange};
+    }
+
+    .dictation-overlay.stopping {
+      border-left-color: ${palette.mutedForeground};
+    }
+
+    .dictation-overlay.error {
+      border-left-color: ${palette.yellow};
+    }
+
+    .dictation-overlay-icon {
+      min-width: 24px;
+      font-size: 20px;
+      color: ${palette.accent};
+    }
+
+    .dictation-overlay.transcribing .dictation-overlay-icon {
+      color: ${palette.green};
+    }
+
+    .dictation-overlay.typing .dictation-overlay-icon {
+      color: ${palette.orange};
+    }
+
+    .dictation-overlay.stopping .dictation-overlay-icon {
+      color: ${palette.mutedForeground};
+      font-size: 15px;
+    }
+
+    .dictation-overlay.error .dictation-overlay-icon {
+      color: ${palette.yellow};
+    }
+
+    .dictation-overlay-label {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .dictation-overlay-detail {
+      color: ${palette.mutedForeground};
     }
 
     scale trough {

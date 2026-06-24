@@ -507,14 +507,15 @@ let
     ${pkgs.coreutils}/bin/rm -f "$stream_output" "$stream_log" "$parser_log" "$startup_log" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
     : > "$stream_output"
     : > "$parser_log"
-    update_status "${dictateIcon}" "Dictation listening with $model_name (step 3s, window 10s)..." "listening"
+    update_status "${dictateIcon}" "Dictation listening with $model_name (step 3s, window 6s)..." "listening"
 
     ${pkgs.whisper-cpp}/bin/whisper-stream \
       -m "$model_file" \
       -l en \
-      -t 8 \
+      -t 4 \
       --step 3000 \
-      --length 10000 \
+      --length 6000 \
+      --no-fallback \
       -vth 0.6 \
       > "$stream_output" 2> "$stream_log" &
     stream_pid="$!"
@@ -689,27 +690,64 @@ let
         '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
     }
 
-    kill_tree() {
+    is_pid_alive() {
       pid="$1"
-      ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1 || return 0
+      [ -n "$pid" ] && ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1
+    }
+
+    pid_from_file() {
+      pid_file="$1"
+      [ -s "$pid_file" ] && ${pkgs.coreutils}/bin/cat "$pid_file"
+    }
+
+    kill_tree() {
+      signal="$1"
+      pid="$2"
+      is_pid_alive "$pid" || return 0
       for child in $(${pkgs.procps}/bin/pgrep -P "$pid" 2>/dev/null || true); do
-        kill_tree "$child"
+        kill_tree "$signal" "$child"
       done
-      ${pkgs.procps}/bin/kill "$pid" >/dev/null 2>&1 || true
+      ${pkgs.procps}/bin/kill "-$signal" "$pid" >/dev/null 2>&1 || true
     }
 
     kill_pid_file() {
-      pid_file="$1"
+      signal="$1"
+      pid_file="$2"
       if [ -s "$pid_file" ]; then
-        kill_tree "$(${pkgs.coreutils}/bin/cat "$pid_file")"
+        kill_tree "$signal" "$(pid_from_file "$pid_file")"
       fi
     }
 
-    kill_pid_file "$stream_pid_file"
-    ${pkgs.coreutils}/bin/sleep 0.7
-    kill_pid_file "$parser_pid_file"
-    kill_pid_file "$watcher_pid_file"
-    kill_pid_file "$stream_pid_file"
+    any_pid_file_alive() {
+      for pid_file in "$@"; do
+        if [ -s "$pid_file" ] && is_pid_alive "$(pid_from_file "$pid_file")"; then
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    wait_pid_files() {
+      attempts="$1"
+      shift
+      while [ "$attempts" -gt 0 ] && any_pid_file_alive "$@"; do
+        ${pkgs.coreutils}/bin/sleep 0.1
+        attempts="$((attempts - 1))"
+      done
+    }
+
+    ${pkgs.coreutils}/bin/mkdir -p "$runtime_dir"
+    update_status "${dictateIcon}" "Dictation stopping..." "stopping"
+    kill_pid_file TERM "$stream_pid_file"
+    kill_pid_file TERM "$parser_pid_file"
+    kill_pid_file TERM "$watcher_pid_file"
+    wait_pid_files 10 "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    if any_pid_file_alive "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"; then
+      kill_pid_file KILL "$stream_pid_file"
+      kill_pid_file KILL "$parser_pid_file"
+      kill_pid_file KILL "$watcher_pid_file"
+      wait_pid_files 3 "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    fi
     ${pkgs.coreutils}/bin/rm -f "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
     update_status "${dictateIcon}" "Dictation idle" "idle"
     ${pkgs.libnotify}/bin/notify-send -t 2000 "Dictation stopped."
@@ -734,30 +772,72 @@ let
     watcher_pid_file="$runtime_dir/watcher.pid"
     status_file="$runtime_dir/status.json"
 
-    kill_tree() {
+    is_pid_alive() {
       pid="$1"
-      ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1 || return 0
+      [ -n "$pid" ] && ${pkgs.procps}/bin/kill -0 "$pid" >/dev/null 2>&1
+    }
+
+    pid_from_file() {
+      pid_file="$1"
+      [ -s "$pid_file" ] && ${pkgs.coreutils}/bin/cat "$pid_file"
+    }
+
+    kill_tree() {
+      signal="$1"
+      pid="$2"
+      is_pid_alive "$pid" || return 0
       for child in $(${pkgs.procps}/bin/pgrep -P "$pid" 2>/dev/null || true); do
-        kill_tree "$child"
+        kill_tree "$signal" "$child"
       done
-      ${pkgs.procps}/bin/kill "$pid" >/dev/null 2>&1 || true
+      ${pkgs.procps}/bin/kill "-$signal" "$pid" >/dev/null 2>&1 || true
     }
 
     kill_pid_file() {
-      pid_file="$1"
+      signal="$1"
+      pid_file="$2"
       if [ -s "$pid_file" ]; then
-        kill_tree "$(${pkgs.coreutils}/bin/cat "$pid_file")"
+        kill_tree "$signal" "$(pid_from_file "$pid_file")"
       fi
     }
 
+    any_pid_file_alive() {
+      for pid_file in "$@"; do
+        if [ -s "$pid_file" ] && is_pid_alive "$(pid_from_file "$pid_file")"; then
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    wait_pid_files() {
+      attempts="$1"
+      shift
+      while [ "$attempts" -gt 0 ] && any_pid_file_alive "$@"; do
+        ${pkgs.coreutils}/bin/sleep 0.1
+        attempts="$((attempts - 1))"
+      done
+    }
+
     ${pkgs.coreutils}/bin/mkdir -p "$runtime_dir"
-    kill_pid_file "$record_pid_file"
-    kill_pid_file "$transcribe_pid_file"
-    kill_pid_file "$stream_pid_file"
-    ${pkgs.coreutils}/bin/sleep 0.7
-    kill_pid_file "$parser_pid_file"
-    kill_pid_file "$watcher_pid_file"
-    kill_pid_file "$stream_pid_file"
+    ${pkgs.jq}/bin/jq -cn \
+      --arg text "${dictateIcon}" \
+      --arg tooltip "Dictation canceling..." \
+      --arg class "stopping" \
+      '{text: $text, tooltip: $tooltip, class: $class}' > "$status_file"
+    kill_pid_file TERM "$record_pid_file"
+    kill_pid_file TERM "$transcribe_pid_file"
+    kill_pid_file TERM "$stream_pid_file"
+    kill_pid_file TERM "$parser_pid_file"
+    kill_pid_file TERM "$watcher_pid_file"
+    wait_pid_files 10 "$record_pid_file" "$transcribe_pid_file" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    if any_pid_file_alive "$record_pid_file" "$transcribe_pid_file" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"; then
+      kill_pid_file KILL "$record_pid_file"
+      kill_pid_file KILL "$transcribe_pid_file"
+      kill_pid_file KILL "$stream_pid_file"
+      kill_pid_file KILL "$parser_pid_file"
+      kill_pid_file KILL "$watcher_pid_file"
+      wait_pid_files 3 "$record_pid_file" "$transcribe_pid_file" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
+    fi
     ${pkgs.coreutils}/bin/rm -f "$runtime_dir"/audio.wav "$runtime_dir"/transcript.txt "$runtime_dir"/*.log "$runtime_dir"/stream.out "$record_pid_file" "$transcribe_pid_file" "$stream_pid_file" "$parser_pid_file" "$watcher_pid_file"
     ${pkgs.jq}/bin/jq -cn \
       --arg text "${dictateIcon}" \

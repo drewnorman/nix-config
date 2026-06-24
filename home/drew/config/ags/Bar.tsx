@@ -516,6 +516,8 @@ const dictationStateLabel = (klass: string) => {
       return "Transcribing"
     case "typing":
       return "Typing"
+    case "stopping":
+      return "Stopping"
     case "error":
       return "Error"
     default:
@@ -523,24 +525,31 @@ const dictationStateLabel = (klass: string) => {
   }
 }
 
-const dictationIsActive = (klass: string) => ["listening", "transcribing", "typing"].includes(klass)
+const dictationIsActive = (klass: string) => ["listening", "transcribing", "typing", "stopping"].includes(klass)
+const dictationOverlayVisible = (klass: string) => ["listening", "transcribing", "typing", "stopping", "error"].includes(klass)
+
+const dictationStateIcon = (klass: string) => {
+  switch (klass) {
+    case "listening":
+      return "󰍬"
+    case "transcribing":
+      return "󰔊"
+    case "typing":
+      return ""
+    case "stopping":
+      return ""
+    case "error":
+      return ""
+    default:
+      return dictateIcon
+  }
+}
 
 function DictationButton({ popup, setPopup }: PopupProps) {
   const status = createPoll("{}", 1000, command("dictate-status"))
   const label = status((raw) => {
     const klass = parseStatus(raw).class ?? "idle"
-    switch (klass) {
-      case "listening":
-        return "󰍬"
-      case "transcribing":
-        return "󰔊"
-      case "typing":
-        return ""
-      case "error":
-        return ""
-      default:
-        return dictateIcon
-    }
+    return dictationStateIcon(klass)
   })
   const klass = status((raw) => {
     const state = parseStatus(raw).class ?? "idle"
@@ -552,6 +561,39 @@ function DictationButton({ popup, setPopup }: PopupProps) {
     <button class={klass} tooltipText={tooltip} onClicked={() => setPopup(popup() === "dictation" ? "" : "dictation")}>
       <label label={label} />
     </button>
+  )
+}
+
+function DictationOverlay({ connector, gdkmonitor }: { connector: string; gdkmonitor: Gdk.Monitor }) {
+  const { TOP } = Astal.WindowAnchor
+  const status = createPoll("{}", 250, command("dictate-status"))
+  const visible = status((raw) => dictationOverlayVisible(parseStatus(raw).class ?? "idle"))
+  const klass = status((raw) => `dictation-overlay ${parseStatus(raw).class ?? "idle"}`)
+  const icon = status((raw) => dictationStateIcon(parseStatus(raw).class ?? "idle"))
+  const label = status((raw) => dictationStateLabel(parseStatus(raw).class ?? "idle"))
+  const detail = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
+
+  return (
+    <window
+      visible={visible}
+      namespace="drew-dictation-overlay"
+      name={`dictation-overlay-${connector}`}
+      gdkmonitor={gdkmonitor}
+      layer={Astal.Layer.OVERLAY}
+      exclusivity={Astal.Exclusivity.IGNORE}
+      keymode={Astal.Keymode.NONE}
+      anchor={TOP}
+      margin_top={42}
+      application={app}
+    >
+      <box class={klass} spacing={10}>
+        <label class="dictation-overlay-icon" label={icon} />
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={1}>
+          <label class="dictation-overlay-label" xalign={0} label={label} />
+          <label class="dictation-overlay-detail" xalign={0} label={detail} />
+        </box>
+      </box>
+    </window>
   )
 }
 
@@ -704,6 +746,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           </box>
         </centerbox>
       </window>
+      <DictationOverlay connector={connector} gdkmonitor={gdkmonitor} />
       <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
         <ClockContent />
       </PopupWindow>
