@@ -54,91 +54,6 @@ let
     cp ${./config/ags/Bar.tsx} "$out/Bar.tsx"
     cp ${pkgs.writeText "drew-ags-style.scss" theme.agsStyle} "$out/style.scss"
   '';
-  swayWorkspaceState = pkgs.writeShellApplication {
-    name = "sway-workspace-state";
-    runtimeInputs = with pkgs; [
-      jq
-      sway
-    ];
-    text = ''
-      output="''${1:-}"
-
-      case "$output" in
-        eDP-1) slots="1 4 7 10" ;;
-        HDMI-A-1) slots="2 5 8" ;;
-        DP-2) slots="3 6 9" ;;
-        *)
-          printf '[]\n'
-          exit 0
-          ;;
-      esac
-
-      last_state=""
-
-      emit() {
-        outputs="$(swaymsg -t get_outputs 2>/dev/null || printf '[]')"
-        workspaces="$(swaymsg -t get_workspaces 2>/dev/null || printf '[]')"
-
-        state="$(jq -cn \
-          --arg output "$output" \
-          --arg slots "$slots" \
-          --argjson outputs "$outputs" \
-          --argjson workspaces "$workspaces" \
-          '
-          def slot_output($num):
-            if ($num == 1 or $num == 4 or $num == 7 or $num == 10) then "eDP-1"
-            elif ($num == 2 or $num == 5 or $num == 8) then "HDMI-A-1"
-            else "DP-2"
-            end;
-
-          def slotnums: $slots | split(" ") | map(tonumber);
-          def active_outputs: $outputs | map(select(.active // false) | .name);
-          def first_active_output: active_outputs | .[0] // $output;
-
-          [
-            ((slotnums + [1,2,3,4,5,6,7,8,9,10]) | unique[]) as $num |
-            (slot_output($num)) as $slot_output |
-            (active_outputs | index($slot_output) != null) as $slot_output_active |
-            select($slot_output == $output or (($slot_output_active | not) and $output == first_active_output)) |
-            ($workspaces | map(select(.num == $num and (.output == $output or .output == $slot_output))) | .[0] // null) as $ws |
-            (($ws != null) and ($ws.visible // false)) as $active |
-            (($ws != null) and (($ws.representation // "") != "")) as $non_empty |
-            select($active or $non_empty) |
-            {
-              num: $num,
-              name: ($ws.name // ($num | tostring)),
-              active: $active,
-              visible: ($ws.visible // false),
-              focused: ($ws.focused // false),
-              urgent: ($ws.urgent // false),
-              current_workspace: $active,
-              non_empty: $non_empty
-            }
-          ]
-          '
-        )"
-
-        if [ "$state" != "$last_state" ]; then
-          printf '%s\n' "$state"
-          last_state="$state"
-        fi
-      }
-
-      emit
-
-      swaymsg -m -t subscribe '["workspace","window","output"]' 2>/dev/null | while IFS= read -r _event; do
-        emit
-      done &
-      subscriber_pid="$!"
-
-      trap 'kill "$subscriber_pid" 2>/dev/null || true' EXIT
-
-      while true; do
-        sleep 0.5
-        emit
-      done
-    '';
-  };
   swayWallpaperConfig = ''
     output eDP-1 bg $HOME/.local/share/wallpapers/${theme.id}/eDP-1.jpg fill
     output HDMI-A-1 bg $HOME/.local/share/wallpapers/${theme.id}/HDMI-A-1.jpg fill
@@ -946,7 +861,6 @@ in
       pandoc
       php
       phpPackages.composer
-      swayWorkspaceState
       taskwarrior3
       toggleCapsEscape
       waybarGammastepToggle

@@ -1,6 +1,6 @@
 import { For, Fragment, With, createBinding, createState, onCleanup } from "ags"
 import app from "ags/gtk4/app"
-import { createSubprocess, exec, execAsync, subprocess } from "ags/process"
+import { exec, execAsync, subprocess } from "ags/process"
 import { createPoll } from "ags/time"
 import Astal from "gi://Astal?version=4.0"
 import AstalBluetooth from "gi://AstalBluetooth"
@@ -35,12 +35,33 @@ type StatusJson = {
 
 type WorkspaceSlot = {
   num: number
+  name: string
   active?: boolean
   visible?: boolean
   focused?: boolean
   current_workspace?: boolean
   non_empty?: boolean
   urgent?: boolean
+}
+
+type SwayOutput = {
+  name?: string
+  active?: boolean
+}
+
+type SwayWorkspace = {
+  num?: number
+  name?: string
+  output?: string
+  visible?: boolean
+  focused?: boolean
+  urgent?: boolean
+  representation?: string
+}
+
+type SwayState = {
+  outputs: Array<SwayOutput>
+  workspaces: Array<SwayWorkspace>
 }
 
 type PopupName = "" | "clock" | "network" | "bluetooth" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
@@ -106,19 +127,124 @@ const parseStatus = (raw: string): StatusJson => {
   }
 }
 
-const latestLine = (raw: string) => {
-  const lines = raw.trim().split("\n").filter(Boolean)
-  return lines.length > 0 ? lines[lines.length - 1] : "[]"
-}
-
 const [anyPopupOpen, setAnyPopupOpen] = createState(false)
+const [swayState, setSwayState] = createState<SwayState>({ outputs: [], workspaces: [] })
+const dictationStatus = createPoll("{}", 1000, command("dictate-status"))
 const closePopupCallbacks = new Set<() => void>()
+let swayEvents: ReturnType<typeof subprocess> | null = null
+let swayRefreshPending = false
+let swayRefreshQueued = false
+let lastSwayState = ""
 
 const closeAllPopups = () => {
   for (const close of closePopupCallbacks) {
     close()
   }
   setAnyPopupOpen(false)
+}
+
+const workspaceSlots: Record<string, Array<number>> = {
+  "eDP-1": [1, 4, 7, 10],
+  "HDMI-A-1": [2, 5, 8],
+  "DP-2": [3, 6, 9],
+}
+
+const slotOutput = (num: number) => {
+  if ([1, 4, 7, 10].includes(num)) return "eDP-1"
+  if ([2, 5, 8].includes(num)) return "HDMI-A-1"
+  return "DP-2"
+}
+
+const workspacesForConnector = ({ outputs, workspaces }: SwayState, connector: string) => {
+  const slots = workspaceSlots[connector] ?? []
+  const activeOutputs = outputs.filter((output) => output.active).map((output) => output.name).filter(Boolean)
+  const firstActiveOutput = activeOutputs[0] ?? connector
+  const nums = Array.from(new Set([...slots, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).sort((a, b) => a - b)
+
+  return nums.flatMap((num): Array<WorkspaceSlot> => {
+    const output = slotOutput(num)
+    const slotOutputActive = activeOutputs.includes(output)
+    if (output !== connector && (slotOutputActive || connector !== firstActiveOutput)) return []
+
+    const workspace = workspaces.find((item) => item.num === num && (item.output === connector || item.output === output))
+    const active = Boolean(workspace?.visible)
+    const nonEmpty = Boolean(workspace && (workspace.representation ?? "") !== "")
+    if (!active && !nonEmpty) return []
+
+    return [{
+      num,
+      name: workspace?.name ?? `${num}`,
+      active,
+      visible: workspace?.visible ?? false,
+      focused: workspace?.focused ?? false,
+      urgent: workspace?.urgent ?? false,
+      current_workspace: active,
+      non_empty: nonEmpty,
+    }]
+  })
+}
+
+const refreshSwayState = async () => {
+  if (swayRefreshPending) {
+    swayRefreshQueued = true
+    return
+  }
+  swayRefreshPending = true
+
+  try {
+    const [outputsRaw, workspacesRaw] = await Promise.all([
+      execAsync(sh("swaymsg -t get_outputs 2>/dev/null || printf '[]'")),
+      execAsync(sh("swaymsg -t get_workspaces 2>/dev/null || printf '[]'")),
+    ])
+    const next = {
+      outputs: parseArray<SwayOutput>(outputsRaw),
+      workspaces: parseArray<SwayWorkspace>(workspacesRaw),
+    }
+    const nextJson = JSON.stringify(next)
+
+    if (nextJson !== lastSwayState) {
+      lastSwayState = nextJson
+      setSwayState(next)
+    }
+  } catch (error) {
+    console.error("Failed to refresh sway state", error)
+  } finally {
+    swayRefreshPending = false
+    if (swayRefreshQueued) {
+      swayRefreshQueued = false
+      void refreshSwayState()
+    }
+  }
+}
+
+const ensureSwayState = () => {
+  if (swayEvents) return
+
+  void refreshSwayState()
+  swayEvents = subprocess(
+    sh("swaymsg -m -t subscribe '[\"workspace\",\"window\",\"output\"]' 2>/dev/null || true"),
+    (raw) => {
+      const events = raw.trim().split("\n").filter(Boolean)
+      const shouldClosePopups = events.some((line) => {
+        try {
+          const event = JSON.parse(line)
+          return event.change != null && (event.container != null || event.current != null)
+        } catch {
+          return false
+        }
+      })
+
+      if (shouldClosePopups) {
+        closeAllPopups()
+      }
+
+      void refreshSwayState()
+    },
+    (error) => {
+      console.error("Sway event subscription failed", error)
+      swayEvents = null
+    },
+  )
 }
 
 function ToolButton({
@@ -164,16 +290,12 @@ function Row({
 }
 
 function Workspaces({ connector }: { connector: string }) {
-  const workspaces = createSubprocess(
-    "[]",
-    [command("sway-workspace-state"), connector],
-    (raw) => latestLine(raw),
-  )
+  ensureSwayState()
 
   return (
     <box class="workspaces" spacing={2}>
       <For
-        each={workspaces((raw) => parseArray<WorkspaceSlot>(raw))}
+        each={swayState((state) => workspacesForConnector(state, connector))}
         id={(workspace) =>
           `${workspace.num}-${workspace.focused ? "focused" : "unfocused"}-${workspace.non_empty ? "non-empty" : "empty"}`
         }
@@ -546,16 +668,15 @@ const dictationStateIcon = (klass: string) => {
 }
 
 function DictationButton({ popup, setPopup }: PopupProps) {
-  const status = createPoll("{}", 1000, command("dictate-status"))
-  const label = status((raw) => {
+  const label = dictationStatus((raw) => {
     const klass = parseStatus(raw).class ?? "idle"
     return dictationStateIcon(klass)
   })
-  const klass = status((raw) => {
+  const klass = dictationStatus((raw) => {
     const state = parseStatus(raw).class ?? "idle"
     return ["tool", "dictation", state, popup() === "dictation" ? "active" : ""].filter(Boolean).join(" ")
   })
-  const tooltip = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
+  const tooltip = dictationStatus((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
 
   return (
     <button class={klass} tooltipText={tooltip} onClicked={() => setPopup(popup() === "dictation" ? "" : "dictation")}>
@@ -566,12 +687,11 @@ function DictationButton({ popup, setPopup }: PopupProps) {
 
 function DictationOverlay({ connector, gdkmonitor }: { connector: string; gdkmonitor: Gdk.Monitor }) {
   const { TOP } = Astal.WindowAnchor
-  const status = createPoll("{}", 250, command("dictate-status"))
-  const visible = status((raw) => dictationOverlayVisible(parseStatus(raw).class ?? "idle"))
-  const klass = status((raw) => `dictation-overlay ${parseStatus(raw).class ?? "idle"}`)
-  const icon = status((raw) => dictationStateIcon(parseStatus(raw).class ?? "idle"))
-  const label = status((raw) => dictationStateLabel(parseStatus(raw).class ?? "idle"))
-  const detail = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
+  const visible = dictationStatus((raw) => dictationOverlayVisible(parseStatus(raw).class ?? "idle"))
+  const klass = dictationStatus((raw) => `dictation-overlay ${parseStatus(raw).class ?? "idle"}`)
+  const icon = dictationStatus((raw) => dictationStateIcon(parseStatus(raw).class ?? "idle"))
+  const label = dictationStatus((raw) => dictationStateLabel(parseStatus(raw).class ?? "idle"))
+  const detail = dictationStatus((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
 
   return (
     <window
@@ -598,10 +718,9 @@ function DictationOverlay({ connector, gdkmonitor }: { connector: string; gdkmon
 }
 
 function DictationContent() {
-  const status = createPoll("{}", 1000, command("dictate-status"))
-  const stateClass = status((raw) => parseStatus(raw).class ?? "idle")
+  const stateClass = dictationStatus((raw) => parseStatus(raw).class ?? "idle")
   const stateLabel = stateClass(dictationStateLabel)
-  const details = status((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
+  const details = dictationStatus((raw) => parseStatus(raw).tooltip ?? "Dictation idle")
 
   return (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
@@ -624,14 +743,14 @@ function PopupWindow({
   popup,
   connector,
   gdkmonitor,
-  children,
+  render,
   register,
 }: {
   name: PopupName
   popup: any
   connector: string
   gdkmonitor: Gdk.Monitor
-  children: JSX.Element
+  render: () => JSX.Element
   register: (window: Astal.Window) => void
 }) {
   const { TOP, RIGHT } = Astal.WindowAnchor
@@ -652,7 +771,9 @@ function PopupWindow({
       application={app}
     >
       <box class="popover" orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-        {children}
+        <With value={popup}>
+          {(active: PopupName) => (active === name ? render() : <box />)}
+        </With>
       </box>
     </window>
   )
@@ -673,17 +794,11 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
     setAnyPopupOpen(active !== "")
   }
   const closePopup = () => setPopup("")
-  const focusEvents = subprocess(
-    sh("swaymsg -t subscribe -m '[\"window\",\"workspace\"]' 2>/dev/null || true"),
-    closeAllPopups,
-    () => {},
-  )
 
   closePopupCallbacks.add(closePopup)
 
   onCleanup(() => {
     closePopupCallbacks.delete(closePopup)
-    focusEvents.kill()
     for (const popupWin of popupWins) {
       popupWin.destroy()
     }
@@ -747,33 +862,15 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
         </centerbox>
       </window>
       <DictationOverlay connector={connector} gdkmonitor={gdkmonitor} />
-      <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <ClockContent />
-      </PopupWindow>
-      <PopupWindow name="dictation" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <DictationContent />
-      </PopupWindow>
-      <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <NetworkContent />
-      </PopupWindow>
-      <PopupWindow name="bluetooth" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <BluetoothContent />
-      </PopupWindow>
-      <PopupWindow name="audio" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <AudioContent />
-      </PopupWindow>
-      <PopupWindow name="display" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <DisplayContent />
-      </PopupWindow>
-      <PopupWindow name="performance" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <PerformanceContent />
-      </PopupWindow>
-      <PopupWindow name="session" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <SessionContent />
-      </PopupWindow>
-      <PopupWindow name="power" popup={popup} connector={connector} gdkmonitor={gdkmonitor} register={(self) => popupWins.push(self)}>
-        <PowerContent />
-      </PopupWindow>
+      <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <ClockContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="dictation" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <DictationContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <NetworkContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="bluetooth" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <BluetoothContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="audio" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <AudioContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="display" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <DisplayContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="performance" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <PerformanceContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="session" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <SessionContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="power" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <PowerContent />} register={(self) => popupWins.push(self)} />
     </Fragment>
   )
 }
