@@ -853,6 +853,7 @@ in
       fzf
       gh
       jq
+      kicad
       lazygit
       lockScreen
       nodejs
