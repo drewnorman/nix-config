@@ -856,6 +856,7 @@ in
       kicad
       lazygit
       lockScreen
+      ngspice
       nodejs
       notmuch
       ripgrep
