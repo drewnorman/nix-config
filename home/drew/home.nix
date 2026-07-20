@@ -19,6 +19,33 @@ let
   wallpaperFallback = ./assets/wallpapers/white.jpg;
   papercolorLightWallpaper = ./assets/wallpapers/papercolor-light.jpg;
   papercolorDarkWallpaper = ./assets/wallpapers/papercolor-dark.jpg;
+  python312Packages = pkgs.python312Packages;
+  simpSexp = python312Packages.buildPythonPackage rec {
+    pname = "simp-sexp";
+    version = "0.3.1";
+    pyproject = true;
+
+    src = pkgs.fetchPypi {
+      pname = "simp_sexp";
+      inherit version;
+      hash = "sha256-/oX60pEHmrW8oYHCKCguJbwN9wdBwN7lk6Qha4eYC1o=";
+    };
+
+    build-system = with python312Packages; [
+      setuptools
+      wheel
+    ];
+
+    pythonImportsCheck = [ "simp_sexp" ];
+  };
+  skidlWithSimpSexp = python312Packages.skidl.overridePythonAttrs (old: {
+    dependencies = (old.dependencies or [ ]) ++ [ simpSexp ];
+    propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ simpSexp ];
+    pythonImportsCheck = [ ];
+  });
+  pythonWithSkidl = pkgs.python312.withPackages (_: [
+    skidlWithSimpSexp
+  ]);
   wallpaperSource = path: if builtins.pathExists path then path else wallpaperFallback;
   wallpaperSlices =
     pkgs.runCommand "papercolor-wallpaper-slices" { nativeBuildInputs = [ pkgs.imagemagick ]; }
@@ -828,6 +855,23 @@ in
       DREW_THEME_NAME = theme.name;
       DREW_THEME_VARIANT = theme.variant;
       GTK_THEME = gtkThemeEnv;
+      KICAD_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD6_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD6_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD6_3DMODEL_DIR = "${pkgs.kicad.libraries.packages3d}/share/kicad/3dmodels";
+      KICAD7_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD7_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD7_3DMODEL_DIR = "${pkgs.kicad.libraries.packages3d}/share/kicad/3dmodels";
+      KICAD8_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD8_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD8_3DMODEL_DIR = "${pkgs.kicad.libraries.packages3d}/share/kicad/3dmodels";
+      KICAD9_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD9_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD9_3DMODEL_DIR = "${pkgs.kicad.libraries.packages3d}/share/kicad/3dmodels";
+      KICAD10_SYMBOL_DIR = "${pkgs.kicad.libraries.symbols}/share/kicad/symbols";
+      KICAD10_FOOTPRINT_DIR = "${pkgs.kicad.libraries.footprints}/share/kicad/footprints";
+      KICAD10_3DMODEL_DIR = "${pkgs.kicad.libraries.packages3d}/share/kicad/3dmodels";
     };
     packages = with pkgs; [
       airpodsConnect
@@ -863,6 +907,7 @@ in
       pandoc
       php
       phpPackages.composer
+      pythonWithSkidl
       taskwarrior3
       toggleCapsEscape
       waybarGammastepToggle
