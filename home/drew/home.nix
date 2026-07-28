@@ -944,6 +944,7 @@ in
         ".local/share/gnupg"
         ".local/share/direnv"
         ".local/share/fish"
+        ".local/share/keyrings"
         ".local/share/password-store"
         ".local/share/whisper"
         ".local/share/zoxide"
