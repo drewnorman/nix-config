@@ -2,7 +2,6 @@ local specs = {}
 
 for _, module in ipairs({
     "plugins.colorscheme",
-    "plugins.treesitter",
     "plugins.lsp",
     "plugins.completion",
     "plugins.git",

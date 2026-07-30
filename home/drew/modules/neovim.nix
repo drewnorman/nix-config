@@ -1,46 +1,45 @@
 {
   pkgs,
   inputs,
-  lib,
   ...
 }:
 let
-  treesitterGrammars = with pkgs.vimPlugins.nvim-treesitter.builtGrammars; {
-    bash = bash;
-    c = c;
-    css = css;
-    diff = diff;
-    html = html;
-    java = java;
-    javascript = javascript;
-    json = json;
-    lua = lua;
-    markdown = markdown;
-    markdown_inline = markdown_inline;
-    nix = nix;
-    php = php;
-    query = query;
-    regex = regex;
-    rust = rust;
-    tsx = tsx;
-    twig = twig;
-    typescript = typescript;
-    vim = vim;
-    vimdoc = vimdoc;
-    vue = vue;
-    xml = xml;
-    yaml = yaml;
+  diffGrammar = pkgs.vimPlugins.nvim-treesitter.builtGrammars.diff.overrideAttrs {
+    version = "0.0.0+rev=1a24d30";
+    src = pkgs.fetchurl {
+      url = "https://github.com/tree-sitter-grammars/tree-sitter-diff/archive/1a24d30d9b2b0bbf8420e229164462f410fb3ad0.tar.gz";
+      hash = "sha256-15ukDQ3/cwvlfbVep2prndMImrGliUxEy7JoDnzRQUM=";
+    };
   };
 
-  treesitterRuntime = pkgs.runCommand "nvim-treesitter-runtime" { } ''
-    mkdir -p "$out/parser"
-
-    ${lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (lang: grammar: ''
-        ln -s ${grammar}/parser "$out/parser/${lang}.so"
-      '') treesitterGrammars
-    )}
-  '';
+  treesitter = pkgs.vimPlugins.nvim-treesitter.withPlugins (
+    grammars: with grammars; [
+      bash
+      c
+      css
+      diffGrammar
+      html
+      java
+      javascript
+      json
+      lua
+      markdown
+      markdown_inline
+      nix
+      php
+      query
+      regex
+      rust
+      tsx
+      twig
+      typescript
+      vim
+      vimdoc
+      vue
+      xml
+      yaml
+    ]
+  );
 in
 {
   imports = [ inputs.nix-wrapper-modules.homeModules.neovim ];
@@ -73,9 +72,15 @@ in
       yazi
     ];
 
-    specs.treesitter-grammars = {
-      collateGrammars = false;
-      data = treesitterRuntime;
+    specs.treesitter = {
+      data = treesitter;
+      before = [ "INIT_MAIN" ];
+    };
+
+    specs.treesitter-textobjects = {
+      data = pkgs.vimPlugins.nvim-treesitter-textobjects;
+      pluginDeps = false;
+      before = [ "INIT_MAIN" ];
     };
 
     info.lsp = {

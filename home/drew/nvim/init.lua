@@ -5,26 +5,11 @@ local config_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h
 vim.opt.rtp:prepend(config_dir)
 package.path = config_dir .. "/lua/?.lua;" .. config_dir .. "/lua/?/init.lua;" .. package.path
 
-local function nix_treesitter_runtime()
-  local ok, nix_info = pcall(require, "nix-info")
-  if ok then
-    return nix_info(nil, "plugins", "start", "nvim-treesitter-runtime")
-  end
-end
-
-local function use_nix_treesitter_runtime()
-  local treesitter_runtime = nix_treesitter_runtime()
-  if treesitter_runtime then
-    vim.opt.runtimepath:prepend(treesitter_runtime)
-  end
-end
-
-use_nix_treesitter_runtime()
-
 require('config.options')
 require('config.autocmds')
 require('config.commands')
 require('config.keymaps')
+require('plugins.treesitter')
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
@@ -42,14 +27,12 @@ require("lazy").setup(require("plugins"), {
     notify = false,
   },
   performance = {
+    reset_packpath = false,
     cache = {
       enabled = false,
     },
     rtp = {
-      paths = (function()
-        local treesitter_runtime = nix_treesitter_runtime()
-        return treesitter_runtime and { treesitter_runtime } or {}
-      end)(),
+      reset = false,
       disabled_plugins = {
         "gzip",
         "matchparen",
@@ -62,5 +45,3 @@ require("lazy").setup(require("plugins"), {
     },
   },
 })
-
-use_nix_treesitter_runtime()
