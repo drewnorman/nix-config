@@ -817,6 +817,7 @@ in
   imports = [
     inputs.ags.homeManagerModules.default
     ./modules/neovim.nix
+    ./modules/openclaw.nix
   ];
 
   home = {

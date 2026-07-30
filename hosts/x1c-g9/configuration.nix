@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ../../modules/nixos/local-ai.nix
   ];
 
   networking.hostName = "x1c-g9";
