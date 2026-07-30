@@ -19,33 +19,6 @@ let
   wallpaperFallback = ./assets/wallpapers/white.jpg;
   papercolorLightWallpaper = ./assets/wallpapers/papercolor-light.jpg;
   papercolorDarkWallpaper = ./assets/wallpapers/papercolor-dark.jpg;
-  python312Packages = pkgs.python312Packages;
-  simpSexp = python312Packages.buildPythonPackage rec {
-    pname = "simp-sexp";
-    version = "0.3.1";
-    pyproject = true;
-
-    src = pkgs.fetchPypi {
-      pname = "simp_sexp";
-      inherit version;
-      hash = "sha256-/oX60pEHmrW8oYHCKCguJbwN9wdBwN7lk6Qha4eYC1o=";
-    };
-
-    build-system = with python312Packages; [
-      setuptools
-      wheel
-    ];
-
-    pythonImportsCheck = [ "simp_sexp" ];
-  };
-  skidlWithSimpSexp = python312Packages.skidl.overridePythonAttrs (old: {
-    dependencies = (old.dependencies or [ ]) ++ [ simpSexp ];
-    propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ simpSexp ];
-    pythonImportsCheck = [ ];
-  });
-  pythonWithSkidl = pkgs.python312.withPackages (_: [
-    skidlWithSimpSexp
-  ]);
   wallpaperSource = path: if builtins.pathExists path then path else wallpaperFallback;
   wallpaperSlices =
     pkgs.runCommand "papercolor-wallpaper-slices" { nativeBuildInputs = [ pkgs.imagemagick ]; }
@@ -907,7 +880,6 @@ in
       pandoc
       php
       phpPackages.composer
-      pythonWithSkidl
       taskwarrior3
       toggleCapsEscape
       waybarGammastepToggle
