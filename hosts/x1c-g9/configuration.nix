@@ -47,6 +47,7 @@
       extraSetFlags = [
         "--accept-dns=true"
         "--accept-routes=true"
+        "--operator=drew"
       ];
       openFirewall = true;
       useRoutingFeatures = "client";

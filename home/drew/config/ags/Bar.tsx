@@ -33,6 +33,22 @@ type StatusJson = {
   class?: string
 }
 
+type TailscaleStatus = {
+  BackendState?: string
+  TailscaleIPs?: Array<string>
+  Self?: {
+    HostName?: string
+    DNSName?: string
+  }
+  CurrentTailnet?: {
+    Name?: string
+  }
+  ExitNodeStatus?: {
+    Online?: boolean
+    TailscaleIPs?: Array<string>
+  }
+}
+
 type WorkspaceSlot = {
   num: number
   name: string
@@ -64,7 +80,7 @@ type SwayState = {
   workspaces: Array<SwayWorkspace>
 }
 
-type PopupName = "" | "clock" | "network" | "bluetooth" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
+type PopupName = "" | "clock" | "network" | "tailscale" | "bluetooth" | "audio" | "display" | "performance" | "session" | "power" | "dictation"
 
 const sh = (cmd: string) => `bash -lc ${JSON.stringify(cmd)}`
 const profileBin = "/etc/profiles/per-user/drew/bin"
@@ -83,6 +99,8 @@ const keepAwakeUnit = "drew-ags-keep-awake.service"
 const keepAwakeStatusCommand = `systemctl --user is-active --quiet ${keepAwakeUnit} && printf true || printf false`
 const keepAwakeToggleCommand =
   `if systemctl --user is-active --quiet ${keepAwakeUnit}; then systemctl --user stop ${keepAwakeUnit}; else systemd-run --user --unit=drew-ags-keep-awake --property=Type=exec --property=Description='AGS keep awake inhibitor' --collect systemd-inhibit --what=idle:sleep --who=ags --why='AGS keep awake' sleep infinity; fi`
+const tailscaleStatusCommand =
+  "status=$(tailscale status --json 2>/dev/null) && printf '%s' \"$status\" || printf '{\"BackendState\":\"Unavailable\"}'"
 
 void AstalBluetooth
 
@@ -127,9 +145,35 @@ const parseStatus = (raw: string): StatusJson => {
   }
 }
 
+const parseTailscaleStatus = (raw: string): TailscaleStatus => {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return { BackendState: "Unavailable" }
+  }
+}
+
+const tailscaleStateLabel = (state?: string) => {
+  switch (state) {
+    case "Running":
+      return "Active"
+    case "Stopped":
+      return "Inactive"
+    case "NeedsLogin":
+      return "Needs login"
+    case "Starting":
+      return "Starting"
+    case "NoState":
+      return "Not configured"
+    default:
+      return "Unavailable"
+  }
+}
+
 const [anyPopupOpen, setAnyPopupOpen] = createState(false)
 const [swayState, setSwayState] = createState<SwayState>({ outputs: [], workspaces: [] })
 const dictationStatus = createPoll("{}", 1000, command("dictate-status"))
+const tailscaleStatus = createPoll('{"BackendState":"Unavailable"}', 2000, sh(tailscaleStatusCommand))
 const closePopupCallbacks = new Set<() => void>()
 let swayEvents: ReturnType<typeof subprocess> | null = null
 let swayRefreshPending = false
@@ -251,17 +295,20 @@ function ToolButton({
   name,
   className,
   label,
+  tooltipText,
   popup,
   setPopup,
 }: {
   name: PopupName
   className?: string
   label: any
+  tooltipText?: any
   popup: any
   setPopup: (popup: PopupName) => void
 }) {
   return (
     <button
+      tooltipText={tooltipText}
       class={popup((active: PopupName) =>
         ["tool", className ?? "", active === name ? "active" : ""].filter(Boolean).join(" ")
       )}
@@ -507,6 +554,51 @@ function NetworkContent() {
           </box>
         )}
       </For>
+    </box>
+  )
+}
+
+function TailscaleButton({ popup, setPopup }: PopupProps) {
+  const status = tailscaleStatus(parseTailscaleStatus)
+  const label = status((value) => value.BackendState === "Running" ? "󰌷" : "󰌸")
+  const tooltip = status((value) => `Tailscale ${value.BackendState === "Running" ? "active" : "inactive"}`)
+
+  return <ToolButton name="tailscale" className="tailscale" label={label} tooltipText={tooltip} popup={popup} setPopup={setPopup} />
+}
+
+function TailscaleContent() {
+  const status = tailscaleStatus(parseTailscaleStatus)
+  const stateLabel = status((value) => tailscaleStateLabel(value.BackendState))
+  const device = status((value) =>
+    (value.Self?.DNSName || value.Self?.HostName || "Unavailable").replace(/\.$/, "")
+  )
+  const tailnet = status((value) => value.CurrentTailnet?.Name ?? "Unavailable")
+  const ipv4 = status((value) => value.TailscaleIPs?.find((ip) => !ip.includes(":")) ?? "None")
+  const ipv6 = status((value) => value.TailscaleIPs?.find((ip) => ip.includes(":")) ?? "None")
+  const exitNode = status((value) => value.ExitNodeStatus
+    ? `${value.ExitNodeStatus.Online ? "Online" : "Offline"}${value.ExitNodeStatus.TailscaleIPs?.[0] ? ` (${value.ExitNodeStatus.TailscaleIPs[0]})` : ""}`
+    : "Not in use"
+  )
+  const active = status((value) => value.BackendState === "Running")
+  const toggle = () => {
+    const command = status().BackendState === "Running"
+      ? "tailscale down"
+      : "tailscale up --timeout=10s"
+
+    void run(command)
+  }
+
+  return (
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+      <Row label="Status" value={stateLabel} />
+      <Row label="Device" value={device} valueMaxWidthChars={36} />
+      <Row label="Tailnet" value={tailnet} valueMaxWidthChars={36} />
+      <Row label="IPv4" value={ipv4} />
+      <Row label="IPv6" value={ipv6} valueMaxWidthChars={36} />
+      <Row label="Exit node" value={exitNode} valueMaxWidthChars={36} />
+      <button class={active((value) => value ? "choice active" : "choice")} onClicked={toggle}>
+        <label label={active((value) => value ? "Disconnect" : "Connect")} />
+      </button>
     </box>
   )
 }
@@ -852,6 +944,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
           <box $type="end" class="right" spacing={0}>
             <DictationButton popup={popup} setPopup={setActivePopup} />
             <NetworkButton popup={popup} setPopup={setActivePopup} />
+            <TailscaleButton popup={popup} setPopup={setActivePopup} />
             <BluetoothButton popup={popup} setPopup={setActivePopup} />
             <AudioButton popup={popup} setPopup={setActivePopup} />
             <DisplayButton popup={popup} setPopup={setActivePopup} />
@@ -865,6 +958,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
       <PopupWindow name="clock" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <ClockContent />} register={(self) => popupWins.push(self)} />
       <PopupWindow name="dictation" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <DictationContent />} register={(self) => popupWins.push(self)} />
       <PopupWindow name="network" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <NetworkContent />} register={(self) => popupWins.push(self)} />
+      <PopupWindow name="tailscale" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <TailscaleContent />} register={(self) => popupWins.push(self)} />
       <PopupWindow name="bluetooth" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <BluetoothContent />} register={(self) => popupWins.push(self)} />
       <PopupWindow name="audio" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <AudioContent />} register={(self) => popupWins.push(self)} />
       <PopupWindow name="display" popup={popup} connector={connector} gdkmonitor={gdkmonitor} render={() => <DisplayContent />} register={(self) => popupWins.push(self)} />

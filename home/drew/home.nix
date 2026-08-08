@@ -1340,6 +1340,7 @@ in
         pulseaudio
         sway
         systemd
+        tailscale
         wireplumber
       ]);
   };
