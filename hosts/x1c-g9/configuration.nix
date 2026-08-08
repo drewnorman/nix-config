@@ -42,7 +42,15 @@
     gnome.gnome-keyring.enable = true;
     libinput.enable = true;
     resolved.enable = true;
-    tailscale.enable = true;
+    tailscale = {
+      enable = true;
+      extraSetFlags = [
+        "--accept-dns=true"
+        "--accept-routes=true"
+      ];
+      openFirewall = true;
+      useRoutingFeatures = "client";
+    };
     thermald.enable = true;
     tlp.enable = true;
     udisks2.enable = true;
