@@ -18,6 +18,7 @@ let
       c
       css
       diffGrammar
+      haskell
       html
       java
       javascript
@@ -56,7 +57,9 @@ in
 
     runtimePkgs = with pkgs; [
       emmet-language-server
+      fourmolu
       fzf
+      haskell-language-server
       intelephense
       jdt-language-server
       lua-language-server
@@ -85,6 +88,7 @@ in
 
     info.lsp = {
       emmet = true;
+      haskell = true;
       intelephense = true;
       jdtls = true;
       lua = true;

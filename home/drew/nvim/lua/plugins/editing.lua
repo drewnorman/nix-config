@@ -130,6 +130,7 @@ return {
                     typescript = { "prettierd", "prettier" },
                     vue        = { "prettierd", "prettier" },
                     css        = { "prettierd", "prettier" },
+                    haskell    = { "fourmolu" },
                     html       = { "prettierd", "prettier" },
                     json       = { "prettierd", "prettier" },
                     php        = { "php-cs-fixer" },

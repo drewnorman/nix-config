@@ -57,6 +57,10 @@ if nix(false, "info", "lsp", "emmet") then
     servers.emmet_language_server = default_config
 end
 
+if nix(false, "info", "lsp", "haskell") then
+    servers.hls = default_config
+end
+
 if nix(false, "info", "lsp", "intelephense") then
     servers.intelephense = vim.tbl_deep_extend("force", default_config, {
         settings = {

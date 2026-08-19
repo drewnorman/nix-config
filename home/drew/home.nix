@@ -854,6 +854,7 @@ in
       bat
       bitwarden-cli
       brightnessctl
+      cabal-install
       calibre
       claude-code
       codex
@@ -871,6 +872,8 @@ in
       foliate
       fzf
       gh
+      haskellPackages.ghc
+      hlint
       jq
       kicad
       lazygit
@@ -897,6 +900,7 @@ in
     persistence."/persist" = {
       directories = [
         ".cache/nix"
+        ".cabal"
         ".cargo"
         ".claude"
         ".codex"

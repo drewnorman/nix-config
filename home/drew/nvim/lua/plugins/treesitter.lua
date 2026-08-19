@@ -4,6 +4,7 @@ local filetype_languages = {
     css = "css",
     diff = "diff",
     help = "vimdoc",
+    haskell = "haskell",
     html = "html",
     java = "java",
     javascript = "javascript",
