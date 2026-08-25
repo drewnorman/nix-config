@@ -870,6 +870,7 @@ in
       fd
       filezilla
       foliate
+      freecad
       fzf
       gh
       haskellPackages.ghc
@@ -881,6 +882,7 @@ in
       ngspice
       nodejs
       notmuch
+      openscad-unstable
       ripgrep
       pandoc
       php
@@ -904,6 +906,8 @@ in
         ".cargo"
         ".claude"
         ".codex"
+        ".config/FreeCAD"
+        ".config/OpenSCAD"
         ".config/chromium"
         ".config/Bitwarden CLI"
         ".config/calibre"
@@ -917,6 +921,8 @@ in
         ".cache/mozilla"
         ".gnupg"
         ".local/share/Bitwarden CLI"
+        ".local/share/FreeCAD"
+        ".local/share/OpenSCAD"
         ".local/share/calibre"
         ".local/share/containers"
         ".local/share/gnupg"
