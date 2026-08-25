@@ -583,7 +583,7 @@ function TailscaleContent() {
   const toggle = () => {
     const command = status().BackendState === "Running"
       ? "tailscale down"
-      : "tailscale up --timeout=10s"
+      : "tailscale up --timeout=10s --accept-routes"
 
     void run(command)
   }
