@@ -27,3 +27,6 @@ sudo nixos-rebuild switch --flake .#x1c-g9
 
 See [INSTALL.md](./INSTALL.md) for the BTRFS subvolume layout and fresh install
 commands.
+
+See [Whonix KVM](./docs/whonix-kvm.md) for the verified, locked-down Whonix
+import and operating procedure.

@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/local-ai.nix
+    ../../modules/nixos/whonix-kvm.nix
   ];
 
   networking.hostName = "x1c-g9";
