@@ -52,7 +52,8 @@ let
     };
 
     models = {
-      mode = "replace";
+      # Keep the built-in OpenAI catalog alongside our local Ollama models.
+      mode = "merge";
       pricing.enabled = false;
       providers.ollama = {
         api = "ollama";
@@ -98,6 +99,18 @@ let
         "ollama/qwen3.5:2b".alias = "light";
         "ollama/qwen3.5:4b".alias = "fast";
         "ollama/qwen3.5:9b".alias = "quality";
+        "openai/gpt-6-astra" = {
+          alias = "chatgpt";
+          agentRuntime.id = "openclaw";
+        };
+        "openai/gpt-6-sol" = {
+          alias = "chatgpt-sol";
+          agentRuntime.id = "openclaw";
+        };
+        "openai/gpt-6-luna" = {
+          alias = "chatgpt-luna";
+          agentRuntime.id = "openclaw";
+        };
       };
       contextTokens = 32768;
       maxConcurrent = 1;
@@ -118,6 +131,8 @@ let
         };
       };
     };
+
+    plugins.entries.openai.enabled = true;
 
     skills = {
       allowBundled = [ ];
