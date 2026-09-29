@@ -109,6 +109,29 @@ mv Whonix-Gateway*.qcow2 ~/.local/share/images/Whonix-Gateway.qcow2
 mv Whonix-Workstation*.qcow2 ~/.local/share/images/Whonix-Workstation.qcow2
 ```
 
+The supplied XML refers to a storage pool named `default`. Confirm that this
+pool points to `~/.local/share/images`:
+
+```sh
+virsh -c qemu:///session pool-list --all
+virsh -c qemu:///session pool-dumpxml default
+```
+
+If no `default` pool exists, create it:
+
+```sh
+virsh -c qemu:///session pool-define-as default dir --target "$HOME/.local/share/images"
+virsh -c qemu:///session pool-start default
+virsh -c qemu:///session pool-autostart default
+```
+
+If an existing pool points elsewhere, resolve that discrepancy before booting;
+do not replace a pool used by other VMs. Refresh the pool after moving images:
+
+```sh
+virsh -c qemu:///session pool-refresh default
+```
+
 Inspect the effective configuration before first boot:
 
 ```sh
@@ -132,8 +155,14 @@ virsh -c qemu:///session start Whonix-Workstation
 virt-manager -c qemu:///session
 ```
 
-On first boot, complete Whonix's setup and updates. Run `systemcheck` in the
-Workstation and confirm that its browser reports a Tor exit address. Never use
+On first boot, complete Whonix's setup. To update either guest, reboot it and
+select `PERSISTENT Mode | SYSMAINT Session | system maintenance tasks` in its
+boot menu, then choose **Install Updates** in the System Maintenance Panel.
+Keep the Gateway running while updating the Workstation. After updates finish,
+reboot into `PERSISTENT Mode | USER Session | daily activities`.
+
+Run `systemcheck` in the Workstation and confirm that its browser reports a Tor
+exit address. Never use
 the host browser as though it were routed through Whonix; only applications in
 the Workstation use the Gateway.
 
