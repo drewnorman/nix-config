@@ -68,6 +68,18 @@
       alsa.support32Bit = true;
       pulse.enable = true;
       jack.enable = true;
+      extraConfig.pipewire-pulse."90-meet-bus" = {
+        "pulse.cmd" = [
+          {
+            cmd = "load-module";
+            args = "module-null-sink sink_name=meet_bus sink_properties=device.description=MeetBus";
+          }
+          {
+            cmd = "load-module";
+            args = "module-remap-source source_name=meet_mic master=meet_bus.monitor source_properties=device.description=MeetMic";
+          }
+        ];
+      };
     };
 
     getty = {
@@ -121,6 +133,10 @@
   };
 
   programs = {
+    obs-studio = {
+      enable = true;
+      enableVirtualCamera = true;
+    };
     chromium = {
       enable = true;
       extraOpts = {

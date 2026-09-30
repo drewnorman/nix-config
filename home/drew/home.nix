@@ -883,6 +883,7 @@ in
       nodejs
       notmuch
       openscad-unstable
+      pavucontrol
       ripgrep
       pandoc
       php
@@ -916,6 +917,7 @@ in
         ".config/gcloud"
         ".config/gh"
         ".config/lazygit"
+        ".config/obs-studio"
         ".config/pulse"
         ".cache/chromium"
         ".cache/mozilla"
