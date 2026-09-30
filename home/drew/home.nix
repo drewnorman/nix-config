@@ -1337,6 +1337,7 @@ in
         bluetooth
         brightness
         network
+        tray
         wireplumber
       ]
       ++ (with pkgs; [

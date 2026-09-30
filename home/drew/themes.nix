@@ -208,6 +208,16 @@ let
       background: ${palette.accentTint};
     }
 
+    .tray-item {
+      min-width: 30px;
+      padding: 0 7px;
+    }
+
+    .tray-item image {
+      min-width: 16px;
+      min-height: 16px;
+    }
+
     .workspace {
       min-width: 22px;
       padding: 0 3px;

@@ -5,6 +5,7 @@ import { createPoll } from "ags/time"
 import Astal from "gi://Astal?version=4.0"
 import AstalBluetooth from "gi://AstalBluetooth"
 import AstalNetwork from "gi://AstalNetwork"
+import AstalTray from "gi://AstalTray"
 import AstalWp from "gi://AstalWp"
 import Gdk from "gi://Gdk?version=4.0"
 import GLib from "gi://GLib"
@@ -830,6 +831,76 @@ function DictationContent() {
   )
 }
 
+function TrayItem({ item }: { item: AstalTray.TrayItem }) {
+  let popover: Gtk.PopoverMenu | null = null
+  let actionGroupSignal = 0
+  let menuModelSignal = 0
+
+  const init = (button: Gtk.Button) => {
+    popover = Gtk.PopoverMenu.new_from_model(item.menuModel)
+    popover.set_parent(button)
+    popover.insert_action_group("dbusmenu", item.actionGroup)
+
+    actionGroupSignal = item.connect("notify::action-group", () => {
+      popover?.insert_action_group("dbusmenu", item.actionGroup)
+    })
+    menuModelSignal = item.connect("notify::menu-model", () => {
+      popover?.set_menu_model(item.menuModel)
+    })
+
+    const secondaryClick = Gtk.GestureClick.new()
+    secondaryClick.set_button(3)
+    secondaryClick.connect("pressed", () => {
+      closeAllPopups()
+      if (item.menuModel) {
+        item.about_to_show()
+        popover?.popup()
+      } else {
+        item.secondary_activate(0, 0)
+      }
+    })
+    button.add_controller(secondaryClick)
+  }
+
+  onCleanup(() => {
+    if (actionGroupSignal) item.disconnect(actionGroupSignal)
+    if (menuModelSignal) item.disconnect(menuModelSignal)
+    popover?.unparent()
+  })
+
+  return (
+    <button
+      $={init}
+      class="tray-item"
+      tooltipText={createBinding(item, "tooltipText")((tooltip) => tooltip || item.title || "Tray item")}
+      onClicked={() => {
+        closeAllPopups()
+        if (item.isMenu && item.menuModel) {
+          item.about_to_show()
+          popover?.popup()
+        } else {
+          item.activate(0, 0)
+        }
+      }}
+    >
+      <image gicon={createBinding(item, "gicon")} pixelSize={16} />
+    </button>
+  )
+}
+
+function Tray() {
+  const tray = AstalTray.get_default()
+  const items = createBinding(tray, "items")
+
+  return (
+    <box class="tray" spacing={0}>
+      <For each={items} id={(item) => item.itemId}>
+        {(item) => <TrayItem item={item} />}
+      </For>
+    </box>
+  )
+}
+
 function PopupWindow({
   name,
   popup,
@@ -942,6 +1013,7 @@ export default function Bar({ gdkmonitor }: { gdkmonitor: Gdk.Monitor }) {
             <Clock popup={popup} setPopup={setActivePopup} />
           </box>
           <box $type="end" class="right" spacing={0}>
+            <Tray />
             <DictationButton popup={popup} setPopup={setActivePopup} />
             <NetworkButton popup={popup} setPopup={setActivePopup} />
             <TailscaleButton popup={popup} setPopup={setActivePopup} />
