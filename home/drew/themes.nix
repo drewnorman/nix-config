@@ -216,6 +216,8 @@ let
     .tray-item image {
       min-width: 16px;
       min-height: 16px;
+      -gtk-icon-style: symbolic;
+      filter: grayscale(1);
     }
 
     .workspace {
