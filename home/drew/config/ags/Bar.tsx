@@ -173,12 +173,25 @@ const tailscaleStateLabel = (state?: string) => {
 
 const [anyPopupOpen, setAnyPopupOpen] = createState(false)
 const [swayState, setSwayState] = createState<SwayState>({ outputs: [], workspaces: [] })
+const clockTime = createPoll("", 1000, () => GLib.DateTime.new_now_local().format("%a %b %d %H:%M:%S")!)
 const dictationStatus = createPoll("{}", 1000, command("dictate-status"))
 const tailscaleStatus = createPoll('{"BackendState":"Unavailable"}', 2000, sh(tailscaleStatusCommand))
+const bluetoothConnected = createPoll("no", 5000, sh(bluetoothConnectedCommand))
+const networkIcon = createPoll(
+  "󰤨",
+  2000,
+  sh("if ! ip -brief addr show scope global | grep -q .; then printf '󰤭'; elif ip -brief addr show scope global | awk '{print $1}' | grep -Eq '^(en|eth)'; then printf '󰈀'; else printf '󰤨'; fi"),
+)
+const powerIcon = createPoll(
+  "󰁹",
+  10000,
+  sh("ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null || printf 0); capacity=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || printf 100); if [ \"$ac\" = 1 ]; then printf '󰚥'; elif [ \"$capacity\" -le 15 ]; then printf '󰁺'; elif [ \"$capacity\" -le 30 ]; then printf '󰁼'; elif [ \"$capacity\" -le 55 ]; then printf '󰁾'; elif [ \"$capacity\" -le 80 ]; then printf '󰂀'; else printf '󰁹'; fi"),
+)
 const closePopupCallbacks = new Set<() => void>()
 let swayEvents: ReturnType<typeof subprocess> | null = null
 let swayRefreshPending = false
 let swayRefreshQueued = false
+let swayRefreshTimer: GLib.Source | null = null
 let lastSwayState = ""
 
 const closeAllPopups = () => {
@@ -262,6 +275,14 @@ const refreshSwayState = async () => {
   }
 }
 
+const scheduleSwayRefresh = () => {
+  if (swayRefreshTimer) return
+  swayRefreshTimer = setTimeout(() => {
+    swayRefreshTimer = null
+    void refreshSwayState()
+  }, 40)
+}
+
 const ensureSwayState = () => {
   if (swayEvents) return
 
@@ -283,7 +304,7 @@ const ensureSwayState = () => {
         closeAllPopups()
       }
 
-      void refreshSwayState()
+      scheduleSwayRefresh()
     },
     (error) => {
       console.error("Sway event subscription failed", error)
@@ -376,9 +397,7 @@ type PopupProps = {
 }
 
 function Clock({ popup, setPopup }: PopupProps) {
-  const time = createPoll("", 1000, () => GLib.DateTime.new_now_local().format("%a %b %d %H:%M:%S")!)
-
-  return <ToolButton name="clock" className="clock" label={time} popup={popup} setPopup={setPopup} />
+  return <ToolButton name="clock" className="clock" label={clockTime} popup={popup} setPopup={setPopup} />
 }
 
 function ClockContent() {
@@ -386,11 +405,15 @@ function ClockContent() {
 }
 
 function AudioButton({ popup, setPopup }: PopupProps) {
-  const label = createPoll(
-    "󰕾",
-    500,
-    sh("state=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || true); volume=$(printf '%s' \"$state\" | awk '{ printf \"%d\", $2 * 100 }'); if printf '%s' \"$state\" | grep -q '\\[MUTED\\]'; then printf '󰖁'; elif [ \"${volume:-0}\" -lt 34 ]; then printf '󰕿'; elif [ \"${volume:-0}\" -lt 67 ]; then printf '󰖀'; else printf '󰕾'; fi"),
-  )
+  const wp = AstalWp.get_default()
+  const volume = wp ? createBinding(wp, "defaultSpeaker", "volume") : null
+  const muted = wp ? createBinding(wp, "defaultSpeaker", "mute") : null
+  const label = volume ? volume((value) => {
+    if (muted?.()) return "󰖁"
+    if (value == null || value < 0.34) return "󰕿"
+    if (value < 0.67) return "󰖀"
+    return "󰕾"
+  }) : "󰕾"
 
   return <ToolButton name="audio" className="audio" label={label} popup={popup} setPopup={setPopup} />
 }
@@ -471,12 +494,7 @@ function AudioContent() {
 }
 
 function BluetoothButton({ popup, setPopup }: PopupProps) {
-  const connected = createPoll(
-    "no",
-    5000,
-    sh(bluetoothConnectedCommand),
-  )
-  const label = connected((state) => (state === "yes" ? "󰂱" : "󰂲"))
+  const label = bluetoothConnected((state) => (state === "yes" ? "󰂱" : "󰂲"))
 
   return <ToolButton name="bluetooth" className="bluetooth" label={label} popup={popup} setPopup={setPopup} />
 }
@@ -508,13 +526,7 @@ function BluetoothContent() {
 }
 
 function NetworkButton({ popup, setPopup }: PopupProps) {
-  const icon = createPoll(
-    "󰤨",
-    2000,
-    sh("if ! ip -brief addr show scope global | grep -q .; then printf '󰤭'; elif ip -brief addr show scope global | awk '{print $1}' | grep -Eq '^(en|eth)'; then printf '󰈀'; else printf '󰤨'; fi"),
-  )
-
-  return <ToolButton name="network" className="network" label={icon} popup={popup} setPopup={setPopup} />
+  return <ToolButton name="network" className="network" label={networkIcon} popup={popup} setPopup={setPopup} />
 }
 
 function NetworkContent() {
@@ -605,13 +617,7 @@ function TailscaleContent() {
 }
 
 function PowerButton({ popup, setPopup }: PopupProps) {
-  const icon = createPoll(
-    "󰁹",
-    10000,
-    sh("ac=$(cat /sys/class/power_supply/AC/online 2>/dev/null || printf 0); capacity=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || printf 100); if [ \"$ac\" = 1 ]; then printf '󰚥'; elif [ \"$capacity\" -le 15 ]; then printf '󰁺'; elif [ \"$capacity\" -le 30 ]; then printf '󰁼'; elif [ \"$capacity\" -le 55 ]; then printf '󰁾'; elif [ \"$capacity\" -le 80 ]; then printf '󰂀'; else printf '󰁹'; fi"),
-  )
-
-  return <ToolButton name="power" className="power" label={icon} popup={popup} setPopup={setPopup} />
+  return <ToolButton name="power" className="power" label={powerIcon} popup={popup} setPopup={setPopup} />
 }
 
 function PowerContent() {
@@ -832,40 +838,66 @@ function DictationContent() {
 }
 
 function TrayItem({ item }: { item: AstalTray.TrayItem }) {
+  let button: Gtk.Button | null = null
   let popover: Gtk.PopoverMenu | null = null
   let actionGroupSignal = 0
   let menuModelSignal = 0
+  let closedSignal = 0
 
-  const init = (button: Gtk.Button) => {
-    popover = Gtk.PopoverMenu.new_from_model(item.menuModel)
-    popover.set_parent(button)
-    popover.insert_action_group("dbusmenu", item.actionGroup)
+  const disposeMenu = () => {
+    const oldPopover = popover
+    popover = null
+    if (actionGroupSignal) item.disconnect(actionGroupSignal)
+    if (menuModelSignal) item.disconnect(menuModelSignal)
+    if (oldPopover && closedSignal) oldPopover.disconnect(closedSignal)
+    actionGroupSignal = 0
+    menuModelSignal = 0
+    closedSignal = 0
+    oldPopover?.popdown()
+    oldPopover?.unparent()
+  }
+
+  const showMenu = () => {
+    if (!button) return false
+    disposeMenu()
+    item.about_to_show()
+    const model = item.menuModel
+    if (!model) return false
+
+    const menu = Gtk.PopoverMenu.new_from_model(model)
+    popover = menu
+    menu.set_parent(button)
+    menu.insert_action_group("dbusmenu", item.actionGroup)
+    closedSignal = menu.connect("closed", () => {
+      if (popover === menu) disposeMenu()
+    })
 
     actionGroupSignal = item.connect("notify::action-group", () => {
-      popover?.insert_action_group("dbusmenu", item.actionGroup)
+      menu.insert_action_group("dbusmenu", item.actionGroup)
     })
     menuModelSignal = item.connect("notify::menu-model", () => {
-      popover?.set_menu_model(item.menuModel)
+      menu.set_menu_model(item.menuModel)
     })
+    menu.popup()
+    return true
+  }
 
+  const init = (self: Gtk.Button) => {
+    button = self
     const secondaryClick = Gtk.GestureClick.new()
     secondaryClick.set_button(3)
     secondaryClick.connect("pressed", () => {
       closeAllPopups()
-      if (item.menuModel) {
-        item.about_to_show()
-        popover?.popup()
-      } else {
+      if (!showMenu()) {
         item.secondary_activate(0, 0)
       }
     })
-    button.add_controller(secondaryClick)
+    self.add_controller(secondaryClick)
   }
 
   onCleanup(() => {
-    if (actionGroupSignal) item.disconnect(actionGroupSignal)
-    if (menuModelSignal) item.disconnect(menuModelSignal)
-    popover?.unparent()
+    disposeMenu()
+    button = null
   })
 
   return (
@@ -875,10 +907,7 @@ function TrayItem({ item }: { item: AstalTray.TrayItem }) {
       tooltipText={createBinding(item, "tooltipText")((tooltip) => tooltip || item.title || "Tray item")}
       onClicked={() => {
         closeAllPopups()
-        if (item.isMenu && item.menuModel) {
-          item.about_to_show()
-          popover?.popup()
-        } else {
+        if (!item.isMenu || !showMenu()) {
           item.activate(0, 0)
         }
       }}
