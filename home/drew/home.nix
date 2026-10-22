@@ -1117,7 +1117,7 @@ in
         IdentitiesOnly = true;
       };
 
-      "bitbucket.org" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
+      "ssh.bitbucket.org" = config.lib.dag.entryBefore [ "wildcardIdentity" ] {
         User = "git";
         IdentityFile = "~/.ssh/git@bitbucket.org";
         IdentitiesOnly = true;
@@ -1127,7 +1127,7 @@ in
         config.lib.dag.entryAfter
           [
             "github.com"
-            "bitbucket.org"
+            "ssh.bitbucket.org"
           ]
           {
             header = "Host * !*.sftp.wpengine.com !lab-core !lab-core-ts";
