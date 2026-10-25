@@ -1,7 +1,6 @@
 { pkgs, ... }:
 
 {
-  boot.initrd.systemd.enable = true;
   boot.initrd.supportedFilesystems = [ "btrfs" ];
   boot.initrd.systemd.storePaths = with pkgs; [
     btrfs-progs
