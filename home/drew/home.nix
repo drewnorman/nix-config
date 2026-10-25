@@ -818,7 +818,6 @@ in
     inputs.ags.homeManagerModules.default
     ./modules/codex-desktop.nix
     ./modules/neovim.nix
-    ./modules/openclaw.nix
   ];
 
   home = {

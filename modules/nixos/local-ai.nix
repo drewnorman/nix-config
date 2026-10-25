@@ -1,10 +1,6 @@
 { lib, pkgs, ... }:
 
 {
-  nixpkgs.config.permittedInsecurePackages = [
-    "openclaw-2026.6.33"
-  ];
-
   services.ollama = {
     enable = true;
     package = pkgs.ollama-vulkan;
