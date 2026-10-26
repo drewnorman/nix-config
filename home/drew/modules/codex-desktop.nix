@@ -1,6 +1,5 @@
 {
   inputs,
-  pkgs,
   ...
 }:
 
@@ -10,8 +9,8 @@
   ];
 
   programs.codexDesktopLinux = {
+    # Keep the app server paired with the desktop build for startup policy reads.
     enable = true;
-    cliPackage = pkgs.codex;
   };
 
   home.persistence."/persist".directories = [
