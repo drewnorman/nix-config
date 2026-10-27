@@ -9,6 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    claude-desktop.url = "github:patrickjaja/claude-desktop-extra";
     codex-desktop-linux.url = "github:ilysenko/codex-desktop-linux";
 
     astal = {

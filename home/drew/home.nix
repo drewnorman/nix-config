@@ -856,6 +856,7 @@ in
       cabal-install
       calibre
       claude-code
+      inputs.claude-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default
       codex
       dictateCancel
       dictateModelInstall
@@ -909,6 +910,7 @@ in
         ".config/FreeCAD"
         ".config/OpenSCAD"
         ".config/chromium"
+        ".config/Claude"
         ".config/Bitwarden CLI"
         ".config/calibre"
         ".config/configstore"
@@ -1488,6 +1490,7 @@ in
         "application/xhtml+xml" = [ "firefox.desktop" ];
         "text/html" = [ "firefox.desktop" ];
         "x-scheme-handler/chrome" = [ "firefox.desktop" ];
+        "x-scheme-handler/claude" = [ "com.anthropic.Claude.desktop" ];
         "x-scheme-handler/claude-cli" = [ "claude-code-url-handler.desktop" ];
         "x-scheme-handler/http" = [ "firefox.desktop" ];
         "x-scheme-handler/https" = [ "firefox.desktop" ];
