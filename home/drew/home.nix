@@ -852,6 +852,7 @@ in
       airpodsDisconnect
       bat
       bitwarden-cli
+      blender
       brightnessctl
       cabal-install
       calibre
@@ -907,6 +908,7 @@ in
         ".cargo"
         ".claude"
         ".codex"
+        ".config/blender"
         ".config/FreeCAD"
         ".config/OpenSCAD"
         ".config/chromium"
