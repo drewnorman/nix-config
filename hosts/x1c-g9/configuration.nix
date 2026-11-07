@@ -124,6 +124,22 @@
 
   systemd.network = {
     enable = true;
+    networks."20-home-wireless" = {
+      matchConfig = {
+        Type = "wlan";
+        SSID = "StorminNorman";
+      };
+      networkConfig = {
+        DHCP = "yes";
+        # Bypass the Netgear DNS relay; keep public DNS available if AdGuard is down.
+        DNS = [
+          "192.168.1.210"
+          "1.1.1.1"
+        ];
+        IPv6AcceptRA = true;
+      };
+      dhcpV4Config.UseDNS = false;
+    };
     networks."25-wireless" = {
       matchConfig.Type = "wlan";
       networkConfig = {
